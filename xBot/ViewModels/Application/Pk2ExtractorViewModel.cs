@@ -722,10 +722,10 @@ namespace xBot
                 WriteProcess("Extracting server information");
 
                 // Create the table which contains the basic info
-                await db.ExecuteQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
+                await db.ExecuteUnsafeQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
 
                 // Add Silkroad files type
-                await db.ExecuteQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"type\",\"" + SilkroadFilesType + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"type\",\"" + SilkroadFilesType + "\")");
 
                 // Add Locale
                 WriteProcess("Extracting locale...");
@@ -737,7 +737,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"locale\",\"" + locale + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"locale\",\"" + locale + "\")");
                 Locale = locale;
 
                 // Add Version
@@ -750,7 +750,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"version\",\"" + version + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"version\",\"" + version + "\")");
                 Version = version;
 
                 // Add Division Info
@@ -769,7 +769,7 @@ namespace xBot
                     divisionsText += div.Key + ":";
                     divisionsText += string.Join(",", div.Value);
                 }
-                await db.ExecuteQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"divisions\",\"" + divisionsText + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"divisions\",\"" + divisionsText + "\")");
                 DivisionInfo = divisionsText;
 
                 // Add Gateway port
@@ -782,7 +782,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"port\",\"" + gateport + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"port\",\"" + gateport + "\")");
                 Gateport = gateport;
                 #endregion
 
@@ -799,7 +799,7 @@ namespace xBot
                 // Extract text references
                 WriteLine("Loading TextDataName references...");
                 WriteProcess("Loading TextDataName");
-                if (!await TryLoadTextDataNameAsync(langIndex))
+                if (!await Task.Run(() => TryLoadTextDataName(langIndex)))
                 {
                     WriteLine("Error loading TextDataName file");
                     WriteProcess("Error");
@@ -810,7 +810,7 @@ namespace xBot
                 // Extract system references
                 WriteLine("Loading TextUISystem references...");
                 WriteProcess("Loading TextUISystem");
-                if (!await TryLoadTextUISystemAsync(langIndex))
+                if (!await Task.Run(() => TryLoadTextUISystem(langIndex)))
                 {
                     WriteLine("Error loading TextUISystem file");
                     WriteProcess("Error");
@@ -820,9 +820,18 @@ namespace xBot
 
                 // Add system references to database
                 WriteLine("Extracting TextUISystem references...");
-                if (!await TryAddTextUISystemAsync(db))
+                if (!await Task.Run(() => TryAddTextUISystem(db)))
                 {
                     WriteLine("Error extracting TextUISystem file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+                WriteLine("Extracting ItemData...");
+                if (!await Task.Run(() => TryAddItemData(db)))
+                {
+                    WriteLine("Error extracting ItemData files");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
@@ -1063,7 +1072,7 @@ namespace xBot
         /// <param name="Path">Pk2 path to the file</param>
         /// <param name="isPointer">Flag to indicate if the file path is actually a file pointing the real data files</param>
         /// <param name="Action">The action to execute for every data file</param>
-        private void ForEachDataFile(string Path,bool isPointer, Action<string> Action)
+        private void ForEachDataFile(string Path,bool isPointer, Action<string,string> Action)
         {
             // Check if the file is a pointer to multiple files
             if (isPointer)
@@ -1073,12 +1082,12 @@ namespace xBot
                 string dirName = System.IO.Path.GetDirectoryName(Path);
                 // Execute the action for each file
                 for (int i = 0; i < files.Length; i++)
-                    Action.Invoke(dirName + "\\" + files[i]);
+                    Action.Invoke(dirName + "\\" + files[i], files[i]);
             }
             else
             {
                 // Just execute the action on this path
-                Action.Invoke(Path);
+                Action.Invoke(Path,System.IO.Path.GetFileName(Path));
             }
         }
         /// <summary>
@@ -1086,7 +1095,7 @@ namespace xBot
         /// </summary>
         /// <param name="LangIndex">The language to be loaded</param>
         /// <returns>Return success</returns>
-        private async Task<bool> TryLoadTextDataNameAsync(byte LangIndex)
+        private bool TryLoadTextDataName(byte LangIndex)
         {
             try
             {
@@ -1095,31 +1104,28 @@ namespace xBot
                 string line;
                 string[] data;
                 // Go through evry file
-                await Task.Run(() => {
-                    ForEachDataFile(TextDataNamePointerPath, true, (FilePath) =>
+                ForEachDataFile(TextDataNamePointerPath, true, (FilePath,FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
                     {
-                        // Keep memory safe
-                        using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                        while (!reader.EndOfStream)
                         {
-                            while (!reader.EndOfStream)
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
                             {
-                                // Skip possible empty lines
-                                if ((line = reader.ReadLine()) == null)
-                                    continue;
+                                data = line.Split('\t');
 
-                                // Data enabled in game
-                                if (line.StartsWith("1\t"))
-                                {
-                                    data = line.Split('\t');
-
-                                    // Make sure is not empty or broken
-                                    if (data.Length > LangIndex && data[LangIndex] != "0") { 
-                                        m_TextDataNameRef[data[1]] = data[LangIndex];
-                                    }
-                                }
+                                // Make sure is not empty or broken
+                                if (data.Length > LangIndex && data[LangIndex] != "0")
+                                    m_TextDataNameRef[data[1]] = data[LangIndex];
                             }
                         }
-                    });
+                    }
                 });
 
                 // Success
@@ -1128,11 +1134,23 @@ namespace xBot
             catch { return false; }
         }
         /// <summary>
+        /// Try to get the name using his reference
+        /// </summary>
+        /// <param name="SN_Reference">The name givne as reference</param>
+        private string GetTextName(string SN_Reference)
+        {
+            // Try to get the key
+            if(m_TextDataNameRef.TryGetValue(SN_Reference, out string result))
+                return result;
+            // Return empty name as default
+            return "";
+        }
+        /// <summary>
         /// Load to memory all system text references
         /// </summary>
         /// <param name="LangIndex">The language to be loaded</param>
         /// <returns>Return success</returns>
-        private async Task<bool> TryLoadTextUISystemAsync(byte LangIndex)
+        private bool TryLoadTextUISystem(byte LangIndex)
         {
             try
             {
@@ -1141,32 +1159,28 @@ namespace xBot
                 string line;
                 string[] data;
                 // Go through evry file
-                await Task.Run(() => {
-                    ForEachDataFile(TextUISystemPath, false, (FilePath) =>
+                ForEachDataFile(TextUISystemPath, false, (FilePath,FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
                     {
-                        // Keep memory safe
-                        using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                        while (!reader.EndOfStream)
                         {
-                            while (!reader.EndOfStream)
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
                             {
-                                // Skip possible empty lines
-                                if ((line = reader.ReadLine()) == null)
-                                    continue;
+                                data = line.Split('\t');
 
-                                // Data enabled in game
-                                if (line.StartsWith("1\t"))
-                                {
-                                    data = line.Split('\t');
-
-                                    // Make sure is not empty or broken
-                                    if (data.Length > LangIndex && data[LangIndex] != "0")
-                                    {
-                                        m_TextUISystemRef[data[1]] = data[LangIndex];
-                                    }
-                                }
+                                // Make sure is not empty or broken
+                                if (data.Length > LangIndex && data[LangIndex] != "0")
+                                    m_TextUISystemRef[data[1]] = data[LangIndex];
                             }
                         }
-                    });
+                    }
                 });
 
                 // Success
@@ -1175,37 +1189,48 @@ namespace xBot
             catch { return false; }
         }
         /// <summary>
+        /// Try to get the message text using his reference
+        /// </summary>
+        /// <param name="UI_Reference">The name givne as reference</param>
+        private string GetTextSystem(string UI_Reference)
+        {
+            // Try to get the key
+            if (m_TextUISystemRef.TryGetValue(UI_Reference, out string result))
+                return result;
+            // Return empty name as default
+            return "";
+        }
+        /// <summary>
         /// Try to add all TextUISystem references to database
         /// </summary>
         /// <param name="db">The database connection</param>
         /// <returns>Return success</returns>
-        private async Task<bool> TryAddTextUISystemAsync(SQLDatabase db)
+        private bool TryAddTextUISystem(SQLDatabase db)
         {
             try
             {
+                // Create the table
                 string sql = "CREATE TABLE textuisystem ("
                     + "_index INTEGER PRIMARY KEY," // (probably) increase the sqlite performance
                     + "servername VARCHAR(64) UNIQUE,"
                     + "text VARCHAR(256)"
                     + ");";
-                // Create the table
-                await db.ExecuteQueryAsync(sql);
+                db.ExecuteUnsafeQuery(sql);
                 
                 // Cache queries
                 db.Begin();
                 int j = 1;
                 foreach (var kv in m_TextUISystemRef)
                 {
+                    // Display progress
+                    WriteProcess("Extracting TextUISystem " + (j * 100 / m_TextUISystemRef.Count) + "%");
+
                     // INSERT
-                    var taskInsert = Task.Run(() => {
-                        db.Prepare("INSERT INTO textuisystem (_index,servername,text) VALUES (?,?,?);");
-                        db.Bind("_index", j++);
-                        db.Bind("servername", kv.Key);
-                        db.Bind("text", kv.Value);
-                        db.ExecuteQuery();
-                    });
-                    WriteProcess("Extracting " + (j * 100/m_TextUISystemRef.Count)+"%");
-                    await taskInsert;
+                    db.Prepare("INSERT INTO textuisystem (_index,servername,text) VALUES (?,?,?);");
+                    db.Bind("_index", j++);
+                    db.Bind("servername", kv.Key);
+                    db.Bind("text", kv.Value);
+                    db.ExecuteQuery();
                 }
                 db.End();
 
@@ -1219,23 +1244,84 @@ namespace xBot
         /// </summary>
         /// <param name="db">The database connection</param>
         /// <returns>Return success</returns>
-        private async Task<bool> TryAddItemDataAsync(SQLDatabase db)
+        private bool TryAddItemData(SQLDatabase db)
         {
             try
             {
-                string sql = "CREATE TABLE textuisystem ("
-                    + "_index INTEGER PRIMARY KEY," // (probably) increase the sqlite performance
-                    + "servername VARCHAR(64) UNIQUE,"
-                    + "text VARCHAR(256)"
-                    + ");";
                 // Create the table
-                await db.ExecuteQueryAsync(sql);
+                string sql = "CREATE TABLE items ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "servername VARCHAR(64),"
+                    + "name VARCHAR(64),"
+                    + "stack_limit INTEGER,"
+                    + "tid2 INTEGER,"
+                    + "tid3 INTEGER,"
+                    + "tid4 INTEGER,"
+                    + "level INTEGER,"
+                    + "icon VARCHAR(64)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Data holders
+                string line,name;
+                string[] data;
 
                 // Go through evry file
-                await Task.Run(() => {
-                    ForEachDataFile(ItemDataPointerPath, true, (FilePath) => {
+                ForEachDataFile(ItemDataPointerPath, true, (FilePath, FileName) => {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
 
-                    });
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data is enabled in game
+                            if (line.StartsWith("1\t"))
+                            {
+                                data = line.Split(new char[] { '\t' }, StringSplitOptions.None);
+
+                                // Display progress
+                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+
+                                // Try to extract name if has one
+                                name = string.Empty;
+                                if (data[5] != "xxx")
+                                    name = GetTextName(data[5]);
+
+                                // Check if the value already exists
+                                db.Prepare("SELECT id FROM items WHERE id=?");
+                                db.Bind("id", data[1]);
+                                db.ExecuteQuery();
+                                if (db.GetResult().Count == 0)
+                                {
+                                    // INSERT
+                                    db.Prepare("INSERT INTO items (id,servername,name,stack_limit,tid2,tid3,tid4,level,icon) VALUES (?,?,?,?,?,?,?,?,?);");
+                                }
+                                else
+                                {
+                                    // UPDATE
+                                    db.Prepare("UPDATE items SET servername=?,name=?,stack_limit=?,tid2=?,tid3=?,tid4=?,level=?,icon=? WHERE id=?");
+                                }
+                                db.Bind("id", data[1]);
+                                db.Bind("servername", data[2]);
+                                db.Bind("name", name);
+                                db.Bind("stack_limit", data[57]);
+                                db.Bind("tid2", data[10]);
+                                db.Bind("tid3", data[11]);
+                                db.Bind("tid4", data[12]);
+                                db.Bind("level", data[33]);
+                                // Normal data has 160 positions approx. this fixes an unnexpected behavior on some servers
+                                db.Bind("icon", (data.Length > 150 ? data[54] : data[50]).ToLower());
+                                db.ExecuteQuery();
+                            }
+                        }
+                        db.End();
+                    }
                 });
 
                 // Success

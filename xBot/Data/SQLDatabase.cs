@@ -121,6 +121,13 @@ namespace xBot.Data
             return m_Command.ExecuteNonQuery();
         }
         /// <summary>
+        /// Asynchronic version to execute a query previously prepared/binded and return the number of columns inserted/affected
+        /// </summary>
+        public async Task<int> ExecuteQueryAsync()
+        {
+            return await m_Command.ExecuteNonQueryAsync();
+        }
+        /// <summary>
         /// Gets a list with all rows and columns values from calling <see cref="ExecuteQuery"/> previously
         /// </summary>
         public List<NameValueCollection> GetResult()
@@ -146,7 +153,7 @@ namespace xBot.Data
         public void Begin(string Name = null)
         {
             // Check if the transaction name exists
-            ExecuteQuery("BEGIN" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
+            ExecuteUnsafeQuery("BEGIN" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
         }
         /// <summary>
         /// Ends a transaction and commit the changes to the database
@@ -156,7 +163,7 @@ namespace xBot.Data
         public void End(string Name = null)
         {
             // Check if the transaction name exists
-            ExecuteQuery("END" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
+            ExecuteUnsafeQuery("END" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
         }
         /// <summary>
         /// Cancel the transaction and roll back all the proposed changes
@@ -166,7 +173,7 @@ namespace xBot.Data
         public void Rollback(string Name = null)
         {
             // Check if the transaction name exists
-            ExecuteQuery("ROLLBACK" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
+            ExecuteUnsafeQuery("ROLLBACK" + (string.IsNullOrWhiteSpace(Name) ? "" : " " + Name));
         }
         /// <summary>
         /// Close the database connection
@@ -186,11 +193,27 @@ namespace xBot.Data
             }
         }
         /// <summary>
+        /// Executes a query without having conflict at the current synchronized binding
+        /// </summary>
+        /// <param name="CommandText">SQL query</param>
+        public void ExecuteUnsafeQuery(string CommandText)
+        {
+            if (m_Connection != null)
+            {
+                // Set the query to work with and execute inmediatly
+                SQLiteCommand command = new SQLiteCommand(CommandText, m_Connection);
+                command.ExecuteNonQuery();
+            }
+        }
+        #endregion
+
+        #region Public Async Methods
+        /// <summary>
         /// Executes a query without creates conflict on the current synchronized binding
         /// and return the number of columns inserted/affected
         /// </summary>
         /// <param name="CommandText">SQL query</param>
-        public async Task<int> ExecuteQueryAsync(string CommandText)
+        public async Task<int> ExecuteUnsafeQueryAsync(string CommandText)
         {
             // Set the query to work with and execute inmediatly
             SQLiteCommand command = new SQLiteCommand(CommandText, m_Connection);
@@ -200,7 +223,7 @@ namespace xBot.Data
         /// Executes a query without creates conflict on the current synchronized binding and return the result inmediatly
         /// </summary>
         /// <returns>List containing all rows and column values</returns>
-        public async Task<List<NameValueCollection>> GetResultFromQueryAsync(string CommandText)
+        public async Task<List<NameValueCollection>> GetResultFromUnsafeQueryAsync(string CommandText)
         {
             List<NameValueCollection> result = new List<NameValueCollection>();
             if (m_Connection != null)
@@ -221,22 +244,6 @@ namespace xBot.Data
                 }
             }
             return result;
-        }
-        #endregion
-
-        #region Private Helpers
-        /// <summary>
-        /// Executes a query without having conflict at the current synchronized binding
-        /// </summary>
-        /// <param name="CommandText">SQL query</param>
-        private void ExecuteQuery(string CommandText)
-        {
-            if (m_Connection != null)
-            {
-                // Set the query to work with and execute inmediatly
-                SQLiteCommand command = new SQLiteCommand(CommandText, m_Connection);
-                command.ExecuteNonQuery();
-            }
         }
         #endregion
     }

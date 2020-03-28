@@ -334,7 +334,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="SkillDataEnc *Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding SkillMasteryDataPointerPath}"
+                                                 Text="{Binding SkillDataEncPointerPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
