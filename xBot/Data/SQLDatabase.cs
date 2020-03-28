@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Data.SQLite;
 using System.IO;
@@ -9,7 +10,7 @@ namespace xBot.Data
     /// <summary>
     /// Wrapper class to handle SQLite connections
     /// </summary>
-    public class SQLDatabase
+    public class SQLDatabase : IDisposable
     {
         #region Private Members
         /// <summary>
@@ -47,14 +48,14 @@ namespace xBot.Data
         /// <returns>Return success</returns>
         public bool Create(string Path)
         {
-            // Check if the file already exists and delete it
-            if (File.Exists(Path))
-            {
-                File.SetAttributes(Path, FileAttributes.Normal);
-                File.Delete(Path);
-            }
             try
-            {
+            { 
+                // Check if the file already exists and delete it
+                if (File.Exists(Path))
+                {
+                    File.SetAttributes(Path, FileAttributes.Normal);
+                    File.Delete(Path);
+                }
                 // Creates a blank database file
                 SQLiteConnection.CreateFile(Path);
                 // Success
@@ -188,6 +189,7 @@ namespace xBot.Data
                     // Dispose objects
                     m_Command.Dispose();
                     m_Connection.Close();
+                    m_Connection.Dispose();
                     m_Connection = null;
                 }
             }
@@ -244,6 +246,17 @@ namespace xBot.Data
                 }
             }
             return result;
+        }
+        #endregion
+
+        #region Destructor
+        /// <summary>
+        /// Free all resources used by the connection
+        /// </summary>
+        public void Dispose()
+        {
+            Close();
+            Path = null;
         }
         #endregion
     }

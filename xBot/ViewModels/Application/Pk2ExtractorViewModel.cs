@@ -14,7 +14,7 @@ namespace xBot
 {
     public class Pk2ExtractorViewModel : BaseViewModel
     {
-        #region Private Properties
+        #region Private Members
         /// <summary>
         /// The window this view model controls
         /// </summary>
@@ -36,10 +36,6 @@ namespace xBot
         /// </summary>
         private string m_SilkroadName;
         /// <summary>
-        /// The Pk2 reader used to extract all info
-        /// </summary>
-        private Pk2Reader m_Pk2;
-        /// <summary>
         /// Flag indicating if the <see cref="CommandStartExtraction"/> is running
         /// </summary>
         private bool m_IsExtracting;
@@ -59,6 +55,7 @@ namespace xBot
         /// The connection port found into the Pk2
         /// </summary>
         private ushort m_Gateport;
+        #endregion
 
         #region Private Advanced Properties
         /// <summary>
@@ -97,13 +94,15 @@ namespace xBot
             m_TeleportLinkPath = "server_dep/silkroad/textdata/TeleportLink.txt";
         #endregion
 
-        #region Local references used to extract the Pk2 properly
+        #region Private Local references used to extract the Pk2 easier
+        /// <summary>
+        /// The Pk2 reader used to extract all info
+        /// </summary>
+        private Pk2Reader m_Pk2;
         private Dictionary<string, string> m_TextDataNameRef;
         private Dictionary<string, string> m_TextUISystemRef;
         #endregion
-
-        #endregion
-
+        
         #region Public Properties
         /// <summary>
         /// Name of the application
@@ -235,6 +234,7 @@ namespace xBot
                 OnPropertyChanged(nameof(Gateport));
             }
         }
+        #endregion
 
         #region Public Advanced Properties
         /// <summary>
@@ -579,8 +579,6 @@ namespace xBot
         }
         #endregion
 
-        #endregion
-
         #region Commands
         /// <summary>
         /// Minimize the window
@@ -635,11 +633,8 @@ namespace xBot
                 // Check the WindowState and change it
                 m_Window.WindowState = m_Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
             });
-            CommandClose = new RelayCommand(()=> {
-                // Try to close the pk2 before exit
-                m_Pk2?.Close();
-                m_Window.Close();
-            });
+            CommandClose = new RelayCommand(m_Window.Close);
+
             CommandStartExtraction = new RelayCommand(async () => await StartExtraction());
         }
         #endregion
@@ -670,6 +665,9 @@ namespace xBot
         /// </summary>
         public async Task StartExtraction()
         {
+            // Database link
+            SQLDatabase db = null;
+
             await RunCommandAsync(() => IsExtracting, async () =>
             {
                 #region Loading Pk2
@@ -693,7 +691,7 @@ namespace xBot
 
                 #region Database connection
                 // Try to create, and connect to the database
-                SQLDatabase db = new SQLDatabase();
+                db = new SQLDatabase();
                 string dbPath = FileManager.GetDatabasePath(SilkroadID);
 
                 WriteProcess("Creating database...");
@@ -748,6 +746,7 @@ namespace xBot
                     WriteLine("Error extracting the version used by the client");
                     WriteProcess("Error");
                     // Abort the extraction
+                    db.Close();
                     return;
                 }
                 await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"version\",\"" + version + "\")");
@@ -755,22 +754,23 @@ namespace xBot
 
                 // Add Division Info
                 WriteProcess("Extracting division info...");
-                Dictionary<string, List<string>> divisions = null;
-                if (!await Task.Run(() => TryGetDivisionInfo(out divisions)))
+                Dictionary<string, List<string>> divisionsInfo = null;
+                if (!await Task.Run(() => TryGetDivisionInfo(out divisionsInfo)))
                 {
                     WriteLine("Error extracting the division info used for the connection");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
                 }
-                string divisionsText = "";
-                foreach (KeyValuePair<string, List<string>> div in divisions)
-                {
-                    divisionsText += div.Key + ":";
-                    divisionsText += string.Join(",", div.Value);
-                }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"divisions\",\"" + divisionsText + "\")");
-                DivisionInfo = divisionsText;
+                // To string line representation
+                string divisionInfoText = await Task.Run(()=> {
+                    List<string> divs = new List<string>();
+                    foreach (KeyValuePair<string, List<string>> div in divisionsInfo)
+                        divs.Add(div.Key + ":" + string.Join(",", div.Value));
+                    return string.Join("|", divs);
+                });
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"divisions\",\"" + divisionInfoText + "\")");
+                DivisionInfo = divisionInfoText;
 
                 // Add Gateway port
                 WriteProcess("Extracting port...");
@@ -796,7 +796,7 @@ namespace xBot
                 else
                     WriteLine("Using " + langName + " (" + langIndex + ") as language");
 
-                // Extract text references
+                // Load text references
                 WriteLine("Loading TextDataName references...");
                 WriteProcess("Loading TextDataName");
                 if (!await Task.Run(() => TryLoadTextDataName(langIndex)))
@@ -807,7 +807,7 @@ namespace xBot
                     return;
                 }
 
-                // Extract system references
+                // Load system references
                 WriteLine("Loading TextUISystem references...");
                 WriteProcess("Loading TextUISystem");
                 if (!await Task.Run(() => TryLoadTextUISystem(langIndex)))
@@ -818,7 +818,7 @@ namespace xBot
                     return;
                 }
 
-                // Add system references to database
+                // Extract system references to database
                 WriteLine("Extracting TextUISystem references...");
                 if (!await Task.Run(() => TryAddTextUISystem(db)))
                 {
@@ -827,11 +827,41 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-
+                
+                // Extract regions references to database
+                WriteLine("Extracting TextZoneName references...");
+                if (!await Task.Run(() => TryAddTextZoneName(langIndex, db)))
+                {
+                    WriteLine("Error extracting TextZoneName file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+                
+                // Extract ItemData to database
                 WriteLine("Extracting ItemData...");
                 if (!await Task.Run(() => TryAddItemData(db)))
                 {
                     WriteLine("Error extracting ItemData files");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+                // Extract MagicOption to database
+                WriteLine("Extracting MagicOption...");
+                if (!await Task.Run(() => TryAddMagicOption(db)))
+                {
+                    WriteLine("Error extracting MagicOption file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+                // Extract CharacterData to database
+                WriteLine("Extracting CharacterData...");
+                if (!await Task.Run(() => TryAddCharacterData(db)))
+                {
+                    WriteLine("Error extracting CharacterData file");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
@@ -844,12 +874,13 @@ namespace xBot
                 WriteLine("Database generated successfully!");
                 WriteProcess("Ready");
 
-                db.Close();
-                m_Pk2.Close();
-
                 // Everything has been generated just fine
                 // m_Window.DialogResult = true;
             });
+
+            // Close database & pk2 before exit
+            db?.Dispose();
+            m_Pk2?.Close();
         }
         #endregion
 
@@ -949,7 +980,7 @@ namespace xBot
         /// Try to get the gateway list by division names
         /// </summary>
         /// <returns>Return success</returns>
-        private bool TryGetDivisionInfo(out Dictionary<string, List<string>> Divisions)
+        private bool TryGetDivisionInfo(out Dictionary<string, List<string>> DivisionInfo)
         {
             try
             {
@@ -958,7 +989,7 @@ namespace xBot
                 BinaryReader buffer = new BinaryReader(data, Encoding.ASCII);
 
                 // initialize
-                Divisions = new Dictionary<string, List<string>>();
+                DivisionInfo = new Dictionary<string, List<string>>();
 
                 // Ignore locale byte
                 buffer.ReadByte();
@@ -988,7 +1019,7 @@ namespace xBot
                     }
 
                     // Add/overwrite division
-                    Divisions[name] = hosts;
+                    DivisionInfo[name] = hosts;
                 }
 
                 // Success
@@ -996,7 +1027,7 @@ namespace xBot
             }
             catch
             {
-                Divisions = null;
+                DivisionInfo = null;
                 return false;
             }
         }
@@ -1191,7 +1222,7 @@ namespace xBot
         /// <summary>
         /// Try to get the message text using his reference
         /// </summary>
-        /// <param name="UI_Reference">The name givne as reference</param>
+        /// <param name="UI_Reference">The name given as reference</param>
         private string GetTextSystem(string UI_Reference)
         {
             // Try to get the key
@@ -1219,20 +1250,100 @@ namespace xBot
                 
                 // Cache queries
                 db.Begin();
-                int j = 1;
+                int i = int.MinValue;
                 foreach (var kv in m_TextUISystemRef)
                 {
                     // Display progress
-                    WriteProcess("Extracting TextUISystem " + (j * 100 / m_TextUISystemRef.Count) + "%");
+                    WriteProcess("Extracting TextUISystem " + ((++i) * 100 / m_TextUISystemRef.Count) + "%");
 
                     // INSERT
                     db.Prepare("INSERT INTO textuisystem (_index,servername,text) VALUES (?,?,?);");
-                    db.Bind("_index", j++);
+                    db.Bind("_index", i);
                     db.Bind("servername", kv.Key);
                     db.Bind("text", kv.Value);
                     db.ExecuteQuery();
                 }
                 db.End();
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add all TextZoneName references to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddTextZoneName(byte LangIndex,SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE regions ("
+                    + "_index INTEGER PRIMARY KEY," // (probably) increase the sqlite performance
+                    + "servername VARCHAR(64) UNIQUE,"
+                    + "name VARCHAR(64)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Data holders
+                string line;
+                string[] data;
+                int i = 0;
+
+                // Go through evry file
+                ForEachDataFile(TextZoneNamePath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
+                            {
+                                data = line.Split('\t');
+
+                                // Make sure is not empty or broken
+                                if (data.Length > LangIndex && data[LangIndex] != "0")
+                                {
+
+                                    // Display progress
+                                    WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+
+                                    // CHECK IF EXISTS
+                                    db.Prepare("SELECT servername FROM regions WHERE servername=?");
+                                    db.Bind("servername", data[1]);
+                                    db.ExecuteQuery();
+                                    if (db.GetResult().Count == 0)
+                                    {
+                                        // INSERT
+                                        db.Prepare("INSERT INTO regions (_index,servername,name) VALUES (?,?,?)");
+                                        db.Bind("_index", i++);
+                                    }
+                                    else
+                                    {
+                                        // UPDATE
+                                        db.Prepare("UPDATE regions SET name=? WHERE servername=?");
+                                    }
+                                    db.Bind("servername", data[1]);
+                                    db.Bind("name", data[LangIndex]);
+                                    db.ExecuteQuery();
+                                }
+                            }
+                        }
+                        // Commit
+                        db.End();
+                    }
+                });
 
                 // Success
                 return true;
@@ -1293,7 +1404,7 @@ namespace xBot
                                 if (data[5] != "xxx")
                                     name = GetTextName(data[5]);
 
-                                // Check if the value already exists
+                                // CHECK IF EXISTS
                                 db.Prepare("SELECT id FROM items WHERE id=?");
                                 db.Bind("id", data[1]);
                                 db.ExecuteQuery();
@@ -1320,6 +1431,248 @@ namespace xBot
                                 db.ExecuteQuery();
                             }
                         }
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add MagicOption to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddMagicOption(SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE magicoptions ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "servername VARCHAR(64),"
+                    + "name VARCHAR(64),"
+                    + "degree INTEGER,"
+                    + "items VARCHAR(64),"
+                    + "value FLOAT,"
+                    + "value_max INTEGER,"
+                    + "increase BOOLEAN"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init Data holders
+                string line,name;
+                string[] data;
+                List<string> itemTypes = new List<string>();
+
+                // Go through evry file
+                ForEachDataFile(MagicOptionPath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
+                            {
+                                data = line.Split('\t');
+
+                                // Display progress
+                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+
+                                #region Extracting: Name
+                                // Convert to readable name (this way since it's harcoded in client)
+                                switch (data[2])
+                                {
+                                    case "MATTR_INT":
+                                        name = GetTextSystem("PARAM_INT");
+                                        break;
+                                    case "MATTR_STR":
+                                        name = GetTextSystem("PARAM_STR");
+                                        break;
+                                    case "MATTR_DUR":
+                                        name = GetTextSystem("PARAM_DUR");
+                                        break;
+                                    case "MATTR_SOLID":
+                                        name = GetTextSystem("PARAM_SOLID");
+                                        break;
+                                    case "MATTR_LUCK":
+                                        name = GetTextSystem("PARAM_LUCK");
+                                        break;
+                                    case "MATTR_ASTRAL":
+                                        name = GetTextSystem("PARAM_ASTRAL");
+                                        break;
+                                    case "MATTR_ATHANASIA":
+                                        name = GetTextSystem("PARAM_ATHANASIA");
+                                        break;
+                                    // Armor (only)
+                                    case "MATTR_HP":
+                                        name = GetTextSystem("PARAM_HP");
+                                        break;
+                                    case "MATTR_MP":
+                                        name = GetTextSystem("PARAM_MP");
+                                        break;
+                                    case "MATTR_ER":
+                                        name = GetTextSystem("PARAM_ER");
+                                        break;
+                                    // Weapons & shield
+                                    case "MATTR_HR":
+                                        name = GetTextSystem("PARAM_HR");
+                                        break;
+                                    case "MATTR_EVADE_BLOCK":
+                                        name = GetTextSystem("PARAM_IGNORE_BLOCKING");
+                                        break;
+                                    case "MATTR_EVADE_CRITICAL":
+                                        name = GetTextSystem("PARAM_EVADE_CRITICAL");
+                                        break;
+                                    // Accesories
+                                    case "MATTR_RESIST_FROSTBITE":
+                                        name = GetTextSystem("PARAM_COLD_RESIST");
+                                        break;
+                                    case "MATTR_RESIST_ESHOCK":
+                                        name = GetTextSystem("PARAM_ESHOCK_RESIST");
+                                        break;
+                                    case "MATTR_RESIST_BURN":
+                                        name = GetTextSystem("PARAM_BURN_RESIST");
+                                        break;
+                                    case "MATTR_RESIST_POISON":
+                                        name = GetTextSystem("PARAM_POISON_RESIST");
+                                        break;
+                                    case "MATTR_RESIST_ZOMBIE":
+                                        name = GetTextSystem("PARAM_ZOMBI_RESIST");
+                                        break;
+                                    default:
+                                        name = "";
+                                        break;
+                                }
+                                #endregion
+
+                                // Add all items assignables to the stone
+                                itemTypes.Clear();
+                                for (byte j = 30; j < data.Length && data[j] == "1"; j += 2)
+                                    itemTypes.Add(data[j - 1]);
+
+                                // CHECK IF EXISTS
+                                db.Prepare("SELECT id FROM magicoptions WHERE id=?");
+                                db.Bind("id", data[1]);
+                                db.ExecuteQuery();
+                                if (db.GetResult().Count == 0)
+                                {
+                                    // INSERT
+                                    db.Prepare("INSERT INTO magicoptions (id,servername,name,degree,items,value,value_max,increase) VALUES (?,?,?,?,?,?,?,?);");
+                                }
+                                else
+                                {
+                                    // UPDATE
+                                    db.Prepare("UPDATE items magicoptions servername=?,name=?,degree=?,items=?,value=?,value_max=?,increase=? WHERE id=?");
+                                }
+                                db.Bind("id", data[1]);
+                                db.Bind("servername", data[2]);
+                                db.Bind("name", name);
+                                db.Bind("degree", data[4]);
+                                db.Bind("items", string.Join("|", itemTypes));
+                                db.Bind("value", data[5]);
+                                db.Bind("value_max", int.Parse(data[10]) & ushort.MaxValue);
+                                db.Bind("increase", data[3] == "+");
+                                db.ExecuteQuery();
+                            }
+                        }
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add CharacterData to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddCharacterData(SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE characters ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "servername VARCHAR(64), "
+                    + "name VARCHAR(64),"
+                    + "tid2 INTEGER,"
+                    + "tid3 INTEGER,"
+                    + "tid4 INTEGER,"
+                    + "hp INTEGER,"
+                    + "level INTEGER"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init Data holders
+                string line;
+                string[] data;
+
+                // Go through evry file
+                ForEachDataFile(CharacterDataPointerPath, true, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
+                            {
+                                data = line.Split('\t');
+
+                                // Display progress
+                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+                                
+                                // CHECK IF EXISTS
+                                db.Prepare("SELECT id FROM characters WHERE id=?");
+                                db.Bind("id", data[1]);
+                                db.ExecuteQuery();
+                                if (db.GetResult().Count == 0)
+                                {
+                                    // INSERT
+                                    db.Prepare("INSERT INTO characters (id,servername,name,tid2,tid3,tid4,hp,level) VALUES (?,?,?,?,?,?,?,?)");
+                                }
+                                else
+                                {
+                                    // UPDATE
+                                    db.Prepare("UPDATE characters SET servername=?,name=?,tid2=?,tid3=?,tid4=?,hp=?,level=? WHERE id=?");
+                                }
+                                db.Bind("id", data[1]);
+                                db.Bind("servername", data[2]);
+                                db.Bind("name", (data[5] != "xxx"? GetTextName(data[5]):string.Empty));
+                                db.Bind("tid2", data[10]);
+                                db.Bind("tid3", data[11]);
+                                db.Bind("tid4", data[12]);
+                                db.Bind("hp", data[59]);
+                                db.Bind("level", data[57]);
+                                db.ExecuteQuery();
+                            }
+                        }
+                        // Commit
                         db.End();
                     }
                 });

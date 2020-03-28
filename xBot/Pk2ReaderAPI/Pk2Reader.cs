@@ -318,7 +318,7 @@ namespace PK2ReaderAPI
             }
         }
         #endregion
-
+        
         #region Pk2 Structures
         object BufferToStruct(byte[] buffer, Type returnStruct)
 		{
