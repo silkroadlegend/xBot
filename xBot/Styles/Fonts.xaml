@@ -1,0 +1,43 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:xBot"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- Source Sans Pro -->
+    <FontFamily x:Key="SourceSansPro">/xBot;component/Resources/Fonts/#Source Sans Pro</FontFamily>
+
+    <!-- Font Awesome -->
+    <FontFamily x:Key="FontAwesomeRegular">/xBot;component/Resources/Fonts/#Font Awesome 5 Pro Regular</FontFamily>
+    <FontFamily x:Key="FontAwesomeLight">/xBot;component/Resources/Fonts/#Font Awesome 5 Pro Light</FontFamily>
+    <FontFamily x:Key="FontAwesomeSolid">/xBot;component/Resources/Fonts/#Font Awesome 5 Pro Solid</FontFamily>
+    <FontFamily x:Key="FontAwesomeDuotone">/xBot;component/Resources/Fonts/#Font Awesome 5 Duotone Solid</FontFamily>
+    <FontFamily x:Key="FontAwesomeBrands">/xBot;component/Resources/Fonts/#Font Awesome 5 Brands Regular</FontFamily>
+    <!-- Font Awesome references -->
+    <system:String x:Key="FAwesomeMinimize">&#xF2D1;</system:String>
+    <system:String x:Key="FAwesomeRestore">&#xF2D2;</system:String>
+    <system:String x:Key="FAwesomeClose">&#xF00D;</system:String>
+
+    <system:String x:Key="FAwesomeLogin">&#xF2BB;</system:String>
+    <system:String x:Key="FAwesomeCharacter">&#xF2BD;</system:String>
+    <system:String x:Key="FAwesomeSettings">&#xF085;</system:String>
+
+    <!-- Default font for the app -->
+    <Style TargetType="{x:Type Control}" x:Key="BaseFontStyle">
+        <Setter Property="FontFamily" Value="{StaticResource SourceSansPro}"/>
+    </Style>
+    
+    <Style TargetType="{x:Type TextBlock}" x:Key="BaseFontTextBlockStyle">
+        <Setter Property="FontFamily" Value="{StaticResource SourceSansPro}"/>
+    </Style>
+
+    <!-- Normalize fonts -->
+    <Style TargetType="{x:Type Label}" BasedOn="{StaticResource BaseFontStyle}"/>
+
+    <!-- Font sizes-->
+    <system:Double x:Key="FontSizeSmaller">10</system:Double>
+    <system:Double x:Key="FontSizeSmall">12</system:Double>
+    <system:Double x:Key="FontSizeRegular">14</system:Double>
+    <system:Double x:Key="FontSizeLarge">16</system:Double>
+    <system:Double x:Key="FontSizeXLarge">20</system:Double>
+    <system:Double x:Key="FontSizeXXLarge">24</system:Double>
+
+</ResourceDictionary>

@@ -1,0 +1,446 @@
+﻿<Window x:Class="xBot.Pk2Extractor"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:xBot"
+        mc:Ignorable="d"
+        x:Name="AppExtractor"
+        WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Title}" 
+        Height="300" Width="400"
+        Foreground="{StaticResource ForegroundMainBrush}">
+
+    <Border BorderThickness="1" BorderBrush="{StaticResource HighlightMainBrush}">
+        <!-- Main layout-->
+        <Grid Background="{StaticResource BackgroundMainBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="50"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid MouseDown="AnyControl_DragWindow"
+                  Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <!-- Logo icon -->
+                <Image Source="/xBot;component/Resources/Images/Logo/icon.png" Margin="5"/>
+                <!-- Window title -->
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            Margin="6">
+                    <TextBlock Text="{Binding AppName}"
+                               FontSize="{StaticResource FontSizeXXLarge}"/>
+                </StackPanel>
+                <!-- Window basic buttons -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50*"/>
+                        <RowDefinition Height="50*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="33*"/>
+                        <ColumnDefinition Width="33*"/>
+                        <ColumnDefinition Width="33*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Command="{Binding CommandMinimize}">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeMinimize}"/>
+                    </Button>
+                    <Button Command="{Binding CommandRestore}"
+                            Grid.Column="1"
+                            IsEnabled="False">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeRestore}"/>
+                    </Button>
+                    <Button Command="{Binding CommandClose}"                            
+                            IsEnabled="{Binding IsExtracting,Converter={x:Static local:InverseBooleanConverter.Instance}}"
+                            Grid.Column="2">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeClose}"/>
+                    </Button>
+                </Grid>
+            </Grid>
+
+            <!-- Navigation Control -->
+            <TabControl Margin="6" Style="{StaticResource HTabControl}" Grid.Row="1">
+
+                <!-- Extractor Log -->
+                <TabItem Style="{StaticResource HTabItem}">
+                    <TabItem.Header>
+                        <TextBlock FontSize="{StaticResource FontSizeRegular}">
+                            Progress
+                        </TextBlock>
+                    </TabItem.Header>
+                    <Border Style="{StaticResource TabItemContentFirstBorder}">
+                        <Border Style="{StaticResource TabItemContentSecondBorder}">
+                            <!-- Content -->
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Button Margin="6"
+                                        Command="{Binding CommandStartExtraction}"
+                                        IsEnabled="{Binding IsExtracting,Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                                    <TextBlock>Start Extraction</TextBlock>
+                                </Button>
+                                <!-- Logger (Macro) -->
+                                <RichTextBox Grid.Row="1"
+                                         Margin="6,0,6,6">
+                                    <FlowDocument>
+                                        <Paragraph>
+                                            <Run Text="{Binding TextLogged}" />
+                                        </Paragraph>
+                                    </FlowDocument>
+                                </RichTextBox>
+                            </Grid>
+                        </Border>
+                    </Border>
+                </TabItem>
+
+                <!-- Extractor Info -->
+                <TabItem Style="{StaticResource HTabItem}">
+                    <TabItem.Header>
+                        <TextBlock FontSize="{StaticResource FontSizeRegular}">
+                            Information
+                        </TextBlock>
+                    </TabItem.Header>
+                    <Border Style="{StaticResource TabItemContentFirstBorder}">
+                        <Border Style="{StaticResource TabItemContentSecondBorder}">
+                            <StackPanel Margin="6">
+                                <!-- Name -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Silkroad Name : "/>
+                                    <TextBox Text="{Binding SilkroadName}"
+                                             Margin="0,1" Grid.Column="1"/>
+                                </Grid>
+                                <!-- Info -->
+                                <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="50*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="50*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="50*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Locale : "/>
+                                    <TextBox Text="{Binding Locale}"
+                                             Grid.Column="1"
+                                             IsReadOnly="True"/>
+                                    <TextBlock Text="Version : "
+                                               Grid.Column="2" Margin="3,0,0,0"/>
+                                    <TextBox Text="{Binding Version}"
+                                             Grid.Column="3"
+                                             IsReadOnly="True"/>
+                                    <TextBlock Text="Gateway Port : "
+                                               Grid.Column="4" Margin="3,0,0,0"/>
+                                    <TextBox Text="{Binding Gateport}"
+                                             Grid.Column="5"
+                                             IsReadOnly="True"/>
+                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Division Info : "/>
+                                            <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding DivisionInfo}"
+                                                 IsReadOnly="True"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Border>
+                </TabItem>
+
+                <!-- Extractor Advanced/Settings -->
+                <TabItem Style="{StaticResource HTabItem}">
+                    <TabItem.Header>
+                        <TextBlock FontSize="{StaticResource FontSizeRegular}">
+                            Advanced
+                        </TextBlock>
+                    </TabItem.Header>
+                    <Border Style="{StaticResource TabItemContentFirstBorder}">
+                        <Border Style="{StaticResource TabItemContentSecondBorder}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="6">
+                                    <!-- Key -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Blowfish Pk2 Key : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding BlowfishKey}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Silkroad files : "/>
+                                        <ComboBox Margin="0,1" Grid.Column="1"
+                                                  ItemsSource="{Binding SilkroadFilesTypes}"
+                                                  SelectedItem="{Binding SilkroadFilesType}">
+                                        </ComboBox>
+                                    </Grid>
+                                    <!-- Connection -->
+                                    <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Version Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding VersionPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="DivisionInfo Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1" 
+                                                 Text="{Binding DivisionInfoPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Gateport Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1" 
+                                                 Text="{Binding GateportPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Type Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1" 
+                                                 Text="{Binding TypePath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <!-- Data -->
+                                    <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TextDataName *Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding TextDataNamePointerPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TextUISystem Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1" 
+                                                 Text="{Binding TextUISystemPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TextZoneName Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding TextZoneNamePath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="ItemData *Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding ItemDataPointerPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="MagicOption Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding MagicOptionPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="CharacterData *Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding CharacterDataPointerPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="LevelData Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding LevelDataPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="SkillMasteryData Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding SkillMasteryDataPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="SkillDataEnc *Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding SkillMasteryDataPointerPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refShopGroup Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refShopGroupPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refMappingShopGroup Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refMappingShopGroupPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refMappingShopWithTab Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refMappingShopWithTabPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refShopTab Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refShopTabPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refShopGoods Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refShopGoodsPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="refScrapOfPackageItem Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding refScrapOfPackageItemPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TeleportData Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding TeleportDataPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TeleportBuilding Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding TeleportBuildingPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="TeleportLink Path: "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding TeleportLinkPath}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Border>
+                </TabItem>
+
+            </TabControl>
+
+            <!-- Logger (Micro) -->
+            <TextBlock Grid.Row="2"
+                       Padding="3,1"
+                       Background="{StaticResource HighlightMainBrush}"
+                       Text="{Binding ProcessLogged}">
+            </TextBlock>
+        </Grid>
+    </Border>
+</Window>

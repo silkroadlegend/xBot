@@ -1,0 +1,225 @@
+﻿<Window x:Class="xBot.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:xBot"
+        mc:Ignorable="d"
+        WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Title="{Binding FullTitle}" 
+        Height="600" Width="800"
+        Foreground="{StaticResource ForegroundMainBrush}">
+
+    <Border BorderThickness="1" BorderBrush="{StaticResource HighlightMainBrush}">
+        <!-- Main layout-->
+        <Grid Background="{StaticResource BackgroundMainBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="50"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <!-- Header -->
+            <Grid MouseDown="AnyControl_DragWindow"
+                  Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <!-- Logo icon -->
+                <Image Source="/xBot;component/Resources/Images/Logo/icon.png" Margin="5"/>
+                <!-- Window title -->
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            Margin="6">
+                    <TextBlock Text="{Binding AppName}" 
+                               FontSize="{StaticResource FontSizeXXLarge}"/>
+                    <TextBlock Text="-"
+                               FontSize="{StaticResource FontSizeXXLarge}"
+                               Padding="6,0"/>
+                    <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeXXLarge}" Foreground="#FF00B4FF"/>
+                </StackPanel>
+                <!-- Window basic buttons -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50*"/>
+                        <RowDefinition Height="50*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="33*"/>
+                        <ColumnDefinition Width="33*"/>
+                        <ColumnDefinition Width="33*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Command="{Binding CommandMinimize}">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeMinimize}"/>
+                    </Button>
+                    <Button Command="{Binding CommandRestore}"
+                            Grid.Column="1">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeRestore}"/>
+                    </Button>
+                    <Button Command="{Binding CommandClose}"
+                            Grid.Column="2">
+                        <TextBlock FontFamily="{StaticResource FontAwesomeRegular}" Text="{StaticResource FAwesomeClose}"/>
+                    </Button>
+                </Grid>
+            </Grid>
+
+            <!-- Navigation Tab-->
+            <TabControl Grid.Row="1" Style="{StaticResource VTabControl}">
+                <!-- Tab Item Login-->
+                <TabItem Style="{StaticResource VTabItem}">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{StaticResource FAwesomeLogin}" Width="28" FontSize="{StaticResource FontSizeLarge}" Padding="0,0,6,0" FontFamily="{StaticResource FontAwesomeSolid}" TextAlignment="Center"/>
+                            <TextBlock FontSize="{StaticResource FontSizeLarge}">Login</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <!--Content-->
+                    <Border Margin="6,0,0,0" Style="{StaticResource BaseBorderStyle}">
+                        
+                    </Border>
+                </TabItem>
+
+                <!-- Tab Item Character-->
+                <TabItem Style="{StaticResource VTabItem}">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{StaticResource FAwesomeCharacter}" Width="28" FontSize="{StaticResource FontSizeLarge}" Padding="0,0,6,0" FontFamily="{StaticResource FontAwesomeSolid}" TextAlignment="Center"/>
+                            <TextBlock FontSize="{StaticResource FontSizeLarge}">Character</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <!-- Content -->
+                    <TabControl Margin="6,0,0,0" Style="{StaticResource HTabControl}">
+                        <TabItem Style="{StaticResource HTabItem}">
+                            <TabItem.Header>
+                                <TextBlock FontSize="{StaticResource FontSizeRegular}">Info</TextBlock>
+                            </TabItem.Header>
+                            <Border Style="{StaticResource TabItemContentFirstBorder}">
+                                <Border Style="{StaticResource TabItemContentSecondBorder}">
+                                    <!-- Content -->
+
+                                </Border>
+                            </Border>
+                        </TabItem>
+                        <TabItem Style="{StaticResource HTabItem}">
+                            <TabItem.Header>
+                                <TextBlock FontSize="{StaticResource FontSizeRegular}">Potions</TextBlock>
+                            </TabItem.Header>
+                            <Border Style="{StaticResource TabItemContentFirstBorder}">
+                                <Border Style="{StaticResource TabItemContentSecondBorder}">
+                                    <!-- Content -->
+
+                                </Border>
+                            </Border>
+                        </TabItem>
+                    </TabControl>
+                </TabItem>
+
+                <!-- Tab Item Settings-->
+                <TabItem Style="{StaticResource VTabItem}">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{StaticResource FAwesomeSettings}" Width="28" FontSize="{StaticResource FontSizeLarge}" Padding="0,0,6,0" FontFamily="{StaticResource FontAwesomeSolid}" TextAlignment="Center"/>
+                            <TextBlock FontSize="{StaticResource FontSizeLarge}">Settings</TextBlock>
+                        </StackPanel>
+                    </TabItem.Header>
+                    <!-- Content -->
+                    <TabControl Margin="6,0,0,0" Style="{StaticResource HTabControl}">
+                        <TabItem Style="{StaticResource HTabItem}">
+                            <TabItem.Header>
+                                <TextBlock FontSize="{StaticResource FontSizeRegular}">Silkroad Servers</TextBlock>
+                            </TabItem.Header>
+                            <Border Style="{StaticResource TabItemContentFirstBorder}">
+                                <Border Style="{StaticResource TabItemContentSecondBorder}">
+                                    <!-- Content -->
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="40"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <!-- Silkroad servers info -->
+                                        <ListView x:Name="Settings_lvwSilkroads"
+                                                  Margin="6,6,6,0">
+                                            <ListView.View>
+                                                <!-- Display a few properties -->
+                                                <GridView>
+                                                    <GridViewColumn Header="ID" Width="30" DisplayMemberBinding="{Binding ID}"/>
+                                                    <GridViewColumn Header="Name" Width="140" DisplayMemberBinding="{Binding Name}"/>
+                                                    <GridViewColumn Header="Type" Width="60" DisplayMemberBinding="{Binding Type}"/>
+                                                    <GridViewColumn Header="Version" Width="90" DisplayMemberBinding="{Binding Version}"/>
+                                                    <GridViewColumn Header="Host(s)" Width="240" DisplayMemberBinding="{Binding Hosts}"/>
+                                                    <GridViewColumn Header="Port" Width="70" DisplayMemberBinding="{Binding Port}"/>
+                                                </GridView>
+                                            </ListView.View>
+                                        </ListView>
+                                        
+                                        <!-- Actions buttons -->
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30*"/>
+                                                <ColumnDefinition Width="60*"/>
+                                                <ColumnDefinition Width="10*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                                                <Button Margin="6,0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding CommandAddSilkroad}">
+                                                        <TextBlock Text="Add"
+                                                                   Margin="3,0"/>
+                                                </Button>
+                                                <Button Margin="6,0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                        <TextBlock Text="Remove"
+                                                                   Margin="3,0"/>
+                                                </Button>
+                                            </StackPanel>
+                                            <Button Grid.Column="2"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="Update" 
+                                                           Margin="3,0"/>
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </Border>
+                        </TabItem>
+                        <TabItem Style="{StaticResource HTabItem}">
+                            <TabItem.Header>
+                                <TextBlock FontSize="{StaticResource FontSizeRegular}">Loader</TextBlock>
+                            </TabItem.Header>
+                            <Border Style="{StaticResource TabItemContentFirstBorder}">
+                                <Border Style="{StaticResource TabItemContentSecondBorder}">
+                                    <!-- Content -->
+
+                                </Border>
+                            </Border>
+                        </TabItem>
+                    </TabControl>
+                </TabItem>
+            </TabControl>
+            
+            <!-- Logger (Macro) -->
+            <RichTextBox Grid.Row="1" 
+                         Height="100" 
+                         VerticalAlignment="Bottom"
+                         Margin="119,0,6,6">
+                <FlowDocument>
+                    <Paragraph>
+                        <Run Text="{Binding TextLogged}" />
+                    </Paragraph>
+                </FlowDocument>
+            </RichTextBox>
+            <!-- Logger (Micro) -->
+            <TextBlock Grid.Row="2"
+                       Padding="3,1"
+                       Background="{StaticResource HighlightMainBrush}">
+                Created By JellyBitz
+            </TextBlock>
+        </Grid>
+    </Border>
+</Window>

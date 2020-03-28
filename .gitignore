@@ -1,0 +1,10 @@
+# Visual Studio cache
+.vs/
+
+# Packages dependencies can be restored
+packages/Newtonsoft.Json.12.0.3/
+packages/System.Data.SQLite.Core.1.0.112.0/
+
+# Debugging data generated
+xBot/bin/debug/
+xBot/obj/
