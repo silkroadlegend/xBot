@@ -3,7 +3,7 @@ using System.IO;
 namespace xBot.Pk2ReaderAPI.Formats
 {
     /// <summary>
-    /// Class to handle the cryptography used on SkillData files
+    /// Helper class having all necessary to handle SkillData files
     /// </summary>
     public static class SkillData
     {
@@ -197,6 +197,7 @@ namespace xBot.Pk2ReaderAPI.Formats
         }
         #endregion
 
+        #region Cryptography
         /// <summary>
         /// Encrypts the file
         /// </summary>
@@ -269,9 +270,9 @@ namespace xBot.Pk2ReaderAPI.Formats
                     0x9D, 0x5D, 0x57, 0xAD, 0xD4, 0xC6, 0x40, 0x93, 0x8D, 0xE9, 0xD3, 0x35, 0x9D, 0xC6, 0xD3, 0x00
                 };
                 uint key = 0x8C1F;
-                // Data decoded
                 byte[] bufferDecoded = new byte[buffer.Length];
 
+                // Decoding
                 byte buff;
                 for (int i = 0; i < buffer.Length; i++)
                 {
@@ -283,5 +284,6 @@ namespace xBot.Pk2ReaderAPI.Formats
             }
             return buffer;
         }
+        #endregion
     }
 }

@@ -88,8 +88,8 @@ namespace xBot
             m_refMappingShopGroupPath = "server_dep/silkroad/textdata/refMappingShopGroup.txt",
             m_refMappingShopWithTabPath = "server_dep/silkroad/textdata/refMappingShopWithTab.txt",
             m_refShopTabPath = "server_dep/silkroad/textdata/refShopTab.txt",
-            m_refShopGoodsPath = "server_dep/silkroad/textdata/refShopGoods.txt",
             m_refScrapOfPackageItemPath = "server_dep/silkroad/textdata/refScrapOfPackageItem.txt",
+            m_refShopGoodsPath = "server_dep/silkroad/textdata/refShopGoods.txt",
             m_TeleportDataPath = "server_dep/silkroad/textdata/TeleportData.txt",
             m_TeleportBuildingPath = "server_dep/silkroad/textdata/TeleportBuilding.txt",
             m_TeleportLinkPath = "server_dep/silkroad/textdata/TeleportLink.txt";
@@ -509,20 +509,6 @@ namespace xBot
             }
         }
         /// <summary>
-        /// Pk2 path to the refShopGoods file
-        /// </summary>
-        public string refShopGoodsPath
-        {
-            get { return m_refShopGoodsPath; }
-            set
-            {
-                // set new value
-                m_refShopGoodsPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refShopGoodsPath));
-            }
-        }
-        /// <summary>
         /// Pk2 path to the refScrapOfPackageItem file
         /// </summary>
         public string refScrapOfPackageItemPath
@@ -534,6 +520,20 @@ namespace xBot
                 m_refScrapOfPackageItemPath = value;
                 // notify event
                 OnPropertyChanged(nameof(refScrapOfPackageItemPath));
+            }
+        }
+        /// <summary>
+        /// Pk2 path to the refShopGoods file
+        /// </summary>
+        public string refShopGoodsPath
+        {
+            get { return m_refShopGoodsPath; }
+            set
+            {
+                // set new value
+                m_refShopGoodsPath = value;
+                // notify event
+                OnPropertyChanged(nameof(refShopGoodsPath));
             }
         }
         /// <summary>
@@ -672,6 +672,7 @@ namespace xBot
             await RunCommandAsync(() => IsExtracting, async () =>
             {
                 #region Loading Pk2
+                WriteLine("Loading the Pk2 file...");
                 WriteProcess("Opening Pk2 file...");
                 // Just make sure the Blowfish key is set correctly
                 if (string.IsNullOrEmpty(BlowfishKey))
@@ -724,7 +725,7 @@ namespace xBot
                 await db.ExecuteUnsafeQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
 
                 // Add Silkroad files type
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"type\",\"" + SilkroadFilesType + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
 
                 // Add Locale
                 WriteProcess("Extracting locale...");
@@ -736,7 +737,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"locale\",\"" + locale + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
                 Locale = locale;
 
                 // Add Version
@@ -750,7 +751,7 @@ namespace xBot
                     db.Close();
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"version\",\"" + version + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
                 Version = version;
 
                 // Add Division Info
@@ -770,7 +771,7 @@ namespace xBot
                         divs.Add(div.Key + ":" + string.Join(",", div.Value));
                     return string.Join("|", divs);
                 });
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"divisions\",\"" + divisionInfoText + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
                 DivisionInfo = divisionInfoText;
 
                 // Add Gateway port
@@ -783,13 +784,13 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES (\"port\",\"" + gateport + "\")");
+                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
                 Gateport = gateport;
                 #endregion
 
                 #region Extraction: Client data
                 // Extract lang to start loading all text references
-                WriteProcess("Extracting Language...");
+                WriteProcess("Extracting language...");
                 string langName = string.Empty;
                 byte langIndex = byte.MinValue;
                 if (!await Task.Run(() => TryGetLanguage(out langIndex, out langName)))
@@ -798,7 +799,7 @@ namespace xBot
                     WriteLine("Using " + langName + " (" + langIndex + ") as language");
 
                 // Load text references
-                WriteLine("Loading TextDataName references...");
+                WriteLine("Loading names references...");
                 WriteProcess("Loading TextDataName");
                 if (!await Task.Run(() => TryLoadTextDataName(langIndex)))
                 {
@@ -809,7 +810,7 @@ namespace xBot
                 }
 
                 // Load system references
-                WriteLine("Loading TextUISystem references...");
+                WriteLine("Loading system text references...");
                 WriteProcess("Loading TextUISystem");
                 if (!await Task.Run(() => TryLoadTextUISystem(langIndex)))
                 {
@@ -820,7 +821,7 @@ namespace xBot
                 }
 
                 // Extract system references to database
-                WriteLine("Extracting TextUISystem references...");
+                WriteLine("Extracting system text references...");
                 if (!await Task.Run(() => TryAddTextUISystem(db)))
                 {
                     WriteLine("Error extracting TextUISystem file");
@@ -830,7 +831,7 @@ namespace xBot
                 }
                 
                 // Extract regions references to database
-                WriteLine("Extracting TextZoneName references...");
+                WriteLine("Extracting region names references...");
                 if (!await Task.Run(() => TryAddTextZoneName(langIndex, db)))
                 {
                     WriteLine("Error extracting TextZoneName file");
@@ -840,7 +841,7 @@ namespace xBot
                 }
                 
                 // Extract ItemData to database
-                WriteLine("Extracting ItemData...");
+                WriteLine("Extracting items...");
                 if (!await Task.Run(() => TryAddItemData(db)))
                 {
                     WriteLine("Error extracting ItemData files");
@@ -850,7 +851,7 @@ namespace xBot
                 }
 
                 // Extract MagicOption to database
-                WriteLine("Extracting MagicOption...");
+                WriteLine("Extracting magic options...");
                 if (!await Task.Run(() => TryAddMagicOption(db)))
                 {
                     WriteLine("Error extracting MagicOption file");
@@ -860,17 +861,17 @@ namespace xBot
                 }
 
                 // Extract CharacterData to database
-                WriteLine("Extracting CharacterData...");
+                WriteLine("Extracting character objects...");
                 if (!await Task.Run(() => TryAddCharacterData(db)))
                 {
-                    WriteLine("Error extracting CharacterData file");
+                    WriteLine("Error extracting CharacterData files");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
                 }
 
                 // Extract LevelData to database
-                WriteLine("Extracting LevelData...");
+                WriteLine("Extracting levels informaton...");
                 if (!await Task.Run(() => TryAddLevelData(db)))
                 {
                     WriteLine("Error extracting LevelData file");
@@ -880,7 +881,7 @@ namespace xBot
                 }
 
                 // Extract SkillMasteryData to database
-                WriteLine("Extracting SkillMasteryData...");
+                WriteLine("Extracting masteries...");
                 if (!await Task.Run(() => TryAddSkillMasteryData(db)))
                 {
                     WriteLine("Error extracting SkillMasteryData file");
@@ -889,15 +890,27 @@ namespace xBot
                     return;
                 }
 
-                // Extract SkillMasteryData to database
-                WriteLine("Extracting SkillData...");
+                // Extract SkillData to database
+                WriteLine("Extracting skills...");
                 if (!await Task.Run(() => TryAddSkillData(db,true)))
                 {
-                    WriteLine("Error extracting SkillData file");
+                    WriteLine("Error extracting SkillData files");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
                 }
+
+                // Extract ShopData to database
+                WriteLine("Extracting shops...");
+                if (!await Task.Run(() => TryAddShops(db)))
+                {
+                    WriteLine("Error extracting shop files references");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+
 
                 // TO DO: the whole extraction
 
@@ -911,7 +924,7 @@ namespace xBot
             });
 
             // Close database & pk2 before exit
-            db?.Dispose();
+            db?.Close();
             m_Pk2?.Close();
         }
         #endregion
@@ -1089,12 +1102,12 @@ namespace xBot
         /// <summary>
         /// Try to get the language used by the client to read text references
         /// </summary>
+        /// <param name="LangIndex">Column position of the language</param>
+        /// <param name="LangName">Language name description</param>
+        /// <param name="ex">The exception produced if cannot get the values</param>
         /// <returns>Return success</returns>
         private bool TryGetLanguage(out byte LangIndex,out string LangName)
         {
-            // Targeting english lang
-            byte defaultLangIndex = 8;
-            string defaultLangName = "English";
             try
             {
                 string[] lines = m_Pk2.GetFileText(TypePath).Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1119,14 +1132,14 @@ namespace xBot
                                 return true;
                             default:
                                 // Unknown language, just kill the process
-                                throw new Exception("Unknown language index");
+                                throw new FileFormatException("Unknown language index");
                         }
                     }
                 }
-            } catch { }
-            // Lang not found or unknown
-            LangIndex = defaultLangIndex;
-            LangName = defaultLangName;
+            }catch { }
+            // Lang not found or unknown, set default english language
+            LangIndex = 8;
+            LangName = "English";
             return false;
         }
         /// <summary>
@@ -2019,6 +2032,293 @@ namespace xBot
                     }
                 });
 
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add ShopGoods to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddShops(SQLDatabase db)
+        {
+            try
+            {
+                List<Shop> shops = new List<Shop>();
+
+                #region Loading shops references
+                // Init Data holders
+                string line;
+                string[] data;
+                
+                WriteProcess("Loading refShopGroup.txt");
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopGroupPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip possible empty lines
+                        if ((line = reader.ReadLine()) == null)
+                            continue;
+
+                        // Data is enabled in game
+                        if (line.StartsWith("1\t"))
+                        {
+                            data = line.Split('\t');
+
+                            // Load shop group
+                            Shop shop = new Shop()
+                            {
+                                NPCServerName = data[4],
+                                // Fix group mall
+                                StoreGroupName = data[3].StartsWith("GROUP_MALL_") ? data[3].Substring(6) : data[3]
+                            };
+                            // Add
+                            shops.Add(shop);
+                        }
+                    }
+                }
+
+                WriteProcess("Loading refMappingShopGroup.txt");
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refMappingShopGroupPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip possible empty lines
+                        if ((line = reader.ReadLine()) == null)
+                            continue;
+
+                        // Data is enabled in game
+                        if (line.StartsWith("1\t"))
+                        {
+                            data = line.Split('\t');
+
+                            // Loads the shop name
+                            foreach (Shop shop in shops)
+                            {
+                                if (shop.StoreGroupName.StartsWith("MALL"))
+                                {
+                                    // Fix group mall
+                                    if (shop.StoreGroupName == data[3])
+                                    {
+                                        shop.StoreName = data[3];
+                                        shop.StoreGroupName = data[2];
+                                    }
+                                }
+                                else if (shop.StoreGroupName == data[2])
+                                {
+                                    shop.StoreName = data[3];
+                                }
+                            }
+                        }
+                    }
+                }
+
+                WriteProcess("Loading refMappingShopWithTab.txt");
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refMappingShopWithTabPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip possible empty lines
+                        if ((line = reader.ReadLine()) == null)
+                            continue;
+
+                        // Data is enabled in game
+                        if (line.StartsWith("1\t"))
+                        {
+                            data = line.Split('\t');
+                            // Assign groups to the shops
+                            foreach (Shop shop in shops)
+                            {
+                                if (shop.StoreName == data[2])
+                                {
+                                    Shop.Group group = new Shop.Group()
+                                    {
+                                        Name = data[3]
+                                    };
+                                    shop.Groups.Add(group);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                WriteProcess("Loading refShopTab.txt");
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopTabPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip possible empty lines
+                        if ((line = reader.ReadLine()) == null)
+                            continue;
+
+                        // Data is enabled in game
+                        if (line.StartsWith("1\t"))
+                        {
+                            data = line.Split('\t');
+
+                            // Loads the tab references for every group
+                            foreach (Shop shop in shops)
+                            {
+                                foreach (Shop.Group group in shop.Groups)
+                                {
+                                    if (group.Name == data[4])
+                                    {
+                                        Shop.Group.Tab tab = new Shop.Group.Tab()
+                                        {
+                                            Name = data[3],
+                                            Title = GetTextSystem(data[5])
+                                        };
+                                        group.Tabs.Add(tab);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                WriteProcess("Loading refScrapOfPackageItem.txt");
+                // Load references to all possibles items package
+                Dictionary<string, string[]> refScrapOfPackageItem = new Dictionary<string, string[]>();
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refScrapOfPackageItemPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip possible empty lines
+                        if ((line = reader.ReadLine()) == null)
+                            continue;
+
+                        // Data is enabled in game
+                        if (line.StartsWith("1\t"))
+                        {
+                            data = line.Split('\t');
+
+                            // Extract item magic options
+                            string[] magicOptions = new string[byte.Parse(data[7])];
+                            for (byte j = 0; j < magicOptions.Length; j++)
+                                magicOptions[j] = data[j + 8];
+
+                            // 0 = itemServerName
+                            // 1 = plus
+                            // 2 = durability or buyStack (behaviour depends on ID's)
+                            // 3 = magic params (blue options)
+                            refScrapOfPackageItem[data[2]] = new string[] { data[3], data[4], data[6], string.Join(",", magicOptions) };
+                        }
+                    }
+                }
+
+                WriteProcess("Loading refShopGoods.txt");
+                // Keep memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopGoodsPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        // Skip empty lines 
+                        // and check enabled data
+                        line = reader.ReadLine();
+                        if (line == null || !line.StartsWith("1\t"))
+                            continue;
+
+                        data = line.Split('\t');
+
+                        // Finally load items to tabs from shops
+                        foreach (Shop shop in shops)
+                        {
+                            foreach (Shop.Group group in shop.Groups)
+                            {
+                                foreach (Shop.Group.Tab tab in group.Tabs)
+                                {
+                                    if (tab.Name == data[2])
+                                    {
+                                        if (refScrapOfPackageItem.TryGetValue(data[3], out string[] _refScrapOfPackageItem))
+                                        {
+                                            // Create item
+                                            Shop.Group.Tab.Item item = new Shop.Group.Tab.Item()
+                                            {
+                                                Name = _refScrapOfPackageItem[0],
+                                                Slot = data[4],
+                                                Plus = _refScrapOfPackageItem[1],
+                                                Durability = _refScrapOfPackageItem[2],
+                                                MagicParams = _refScrapOfPackageItem[3]
+                                            };
+                                            // Add
+                                            tab.Items.Add(item);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #endregion
+
+                // Create table
+                string sql = "CREATE TABLE shops ("
+                    + "character_servername VARCHAR(64),"
+                    + "tab INTEGER,"
+                    + "slot INTEGER,"
+                    + "item_servername VARCHAR(64),"
+                    + "plus INTEGER,"
+                    + "durability INTEGER,"
+                    + "magicparams VARCHAR(256),"
+                    + "PRIMARY KEY (character_servername,tab,slot)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Cache queries
+                db.Begin();
+                for (int s = 0; s < shops.Count; s++)
+                {
+                    int tabCount = 0;
+                    for (int g = 0; g < shops[s].Groups.Count; g++)
+                    {
+                        for (int t = 0; t < shops[s].Groups[g].Tabs.Count; t++)
+                        {
+                            for (int i = 0; i < shops[s].Groups[g].Tabs[t].Items.Count; i++)
+                            {
+                                // Display progress
+                                WriteProcess("Extracting Shops (" + (s * 100 / shops.Count) + "%)");
+
+                                Shop.Group.Tab.Item item = shops[s].Groups[g].Tabs[t].Items[i];
+
+                                // CHECK IF EXISTS
+                                db.Prepare("SELECT character_servername FROM shops WHERE character_servername=? AND tab=? AND slot=?");
+                                db.Bind("character_servername", shops[s].NPCServerName);
+                                db.Bind("tab", tabCount);
+                                db.Bind("slot", i);
+                                db.ExecuteQuery();
+                                if (db.GetResult().Count == 0)
+                                {
+                                    // INSERT
+                                    db.Prepare("INSERT INTO shops (character_servername,tab,slot,item_servername,plus,durability,magicparams) VALUES (?,?,?,?,?,?,?)");
+                                }
+                                else
+                                {
+                                    // UPDATE
+                                    db.Prepare("UPDATE shops SET item_servername=?,plus=?,durability=?,magicparams=? WHERE character_servername=? AND tab=? AND slot=?");
+                                }
+                                db.Bind("character_servername", shops[s].NPCServerName);
+                                db.Bind("tab", tabCount);
+                                db.Bind("slot", i);
+                                db.Bind("item_servername", item.Name);
+                                db.Bind("plus", item.Plus);
+                                db.Bind("durability", item.Durability);
+                                db.Bind("magicparams", item.MagicParams);
+                                db.ExecuteQuery();
+                            }
+                            tabCount++;
+                        }
+                    }
+                }
+                // Commit
+                db.End();
+                
                 // Success
                 return true;
             }

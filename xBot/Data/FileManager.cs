@@ -16,10 +16,9 @@ namespace xBot.Data
        /// Get the directory folder path and create it if is necessary.
        /// </summary>
        /// <param name="Type">Folder type</param>
-       /// <returns></returns>
         public static string GetDirectory(DirectoryType Type)
         {
-            string path = "";
+            string path = string.Empty;
 
             // Select a valid path
             switch (Type)
@@ -33,6 +32,9 @@ namespace xBot.Data
                 case DirectoryType.Minimap:
                     path = "Minimap";
                     break;
+                case DirectoryType.Logs:
+                    path = "Logs";
+                    break;
             }
 
             // Create directory if is necessary
@@ -45,7 +47,6 @@ namespace xBot.Data
         /// Get the database file path
         /// </summary>
         /// <param name="Name">Unique name to identify the server</param>
-        /// <returns></returns>
         public static string GetDatabasePath(string Name)
         {
             // Get the base path
@@ -68,7 +69,8 @@ namespace xBot.Data
         {
             Data,
             Config,
-            Minimap
+            Minimap,
+            Logs
         }
     }
 }

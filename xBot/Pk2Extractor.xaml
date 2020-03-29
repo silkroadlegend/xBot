@@ -380,9 +380,9 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="refShopGoods Path: "/>
+                                        <TextBlock Text="refScrapOfPackageItem Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refShopGoodsPath}"
+                                                 Text="{Binding refScrapOfPackageItemPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -390,9 +390,9 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="refScrapOfPackageItem Path: "/>
+                                        <TextBlock Text="refShopGoods Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refScrapOfPackageItemPath}"
+                                                 Text="{Binding refShopGoodsPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
