@@ -910,11 +910,28 @@ namespace xBot
                     return;
                 }
 
+                // Extract TeleportBuilding to database
+                WriteLine("Extracting buildings...");
+                if (!await Task.Run(() => TryAddBuildings(db)))
+                {
+                    WriteLine("Error extracting buildings file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
 
-
-                // TO DO: the whole extraction
-
+                // Extract TeleportBuilding to database
+                WriteLine("Extracting teleports...");
+                if (!await Task.Run(() => TryAddTeleportLinks(db)))
+                {
+                    WriteLine("Error extracting teleport files");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
                 #endregion
+
+                // TO DO: continue the extraction
 
                 WriteLine("Database generated successfully!");
                 WriteProcess("Ready");
@@ -1210,7 +1227,7 @@ namespace xBot
             catch { return false; }
         }
         /// <summary>
-        /// Try to get the name using his reference
+        /// Get the name using his reference. Returns an empty string if is not found
         /// </summary>
         /// <param name="SN_Reference">The name givne as reference</param>
         private string GetTextName(string SN_Reference)
@@ -1265,7 +1282,7 @@ namespace xBot
             catch { return false; }
         }
         /// <summary>
-        /// Try to get the message text using his reference
+        /// Get the message text using his reference. Returns an empty string if is not found
         /// </summary>
         /// <param name="UI_Reference">The name given as reference</param>
         private string GetTextSystem(string UI_Reference)
@@ -2049,7 +2066,7 @@ namespace xBot
                 List<Shop> shops = new List<Shop>();
 
                 #region Loading shops references
-                // Init Data holders
+                // Init data holders
                 string line;
                 string[] data;
                 
@@ -2059,25 +2076,22 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip possible empty lines
-                        if ((line = reader.ReadLine()) == null)
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
-                        // Data is enabled in game
-                        if (line.StartsWith("1\t"))
-                        {
-                            data = line.Split('\t');
+                         data = line.Split('\t');
 
-                            // Load shop group
-                            Shop shop = new Shop()
-                            {
-                                NPCServerName = data[4],
-                                // Fix group mall
-                                StoreGroupName = data[3].StartsWith("GROUP_MALL_") ? data[3].Substring(6) : data[3]
-                            };
-                            // Add
-                            shops.Add(shop);
-                        }
+                        // Load shop group
+                        Shop shop = new Shop()
+                        {
+                            NPCServerName = data[4],
+                            // Fix group mall
+                            StoreGroupName = data[3].StartsWith("GROUP_MALL_") ? data[3].Substring(6) : data[3]
+                        };
+                        // Add
+                        shops.Add(shop);
                     }
                 }
 
@@ -2087,31 +2101,28 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip possible empty lines
-                        if ((line = reader.ReadLine()) == null)
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
-                        // Data is enabled in game
-                        if (line.StartsWith("1\t"))
-                        {
-                            data = line.Split('\t');
+                        data = line.Split('\t');
 
-                            // Loads the shop name
-                            foreach (Shop shop in shops)
+                        // Loads the shop name
+                        foreach (Shop shop in shops)
+                        {
+                            if (shop.StoreGroupName.StartsWith("MALL"))
                             {
-                                if (shop.StoreGroupName.StartsWith("MALL"))
-                                {
-                                    // Fix group mall
-                                    if (shop.StoreGroupName == data[3])
-                                    {
-                                        shop.StoreName = data[3];
-                                        shop.StoreGroupName = data[2];
-                                    }
-                                }
-                                else if (shop.StoreGroupName == data[2])
+                                // Fix group mall
+                                if (shop.StoreGroupName == data[3])
                                 {
                                     shop.StoreName = data[3];
+                                    shop.StoreGroupName = data[2];
                                 }
+                            }
+                            else if (shop.StoreGroupName == data[2])
+                            {
+                                shop.StoreName = data[3];
                             }
                         }
                     }
@@ -2123,25 +2134,23 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip possible empty lines
-                        if ((line = reader.ReadLine()) == null)
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
-                        // Data is enabled in game
-                        if (line.StartsWith("1\t"))
+                        data = line.Split('\t');
+
+                        // Assign groups to the shops
+                        foreach (Shop shop in shops)
                         {
-                            data = line.Split('\t');
-                            // Assign groups to the shops
-                            foreach (Shop shop in shops)
+                            if (shop.StoreName == data[2])
                             {
-                                if (shop.StoreName == data[2])
+                                Shop.Group group = new Shop.Group()
                                 {
-                                    Shop.Group group = new Shop.Group()
-                                    {
-                                        Name = data[3]
-                                    };
-                                    shop.Groups.Add(group);
-                                }
+                                    Name = data[3]
+                                };
+                                shop.Groups.Add(group);
                             }
                         }
                     }
@@ -2153,29 +2162,26 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip possible empty lines
-                        if ((line = reader.ReadLine()) == null)
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
-                        // Data is enabled in game
-                        if (line.StartsWith("1\t"))
-                        {
-                            data = line.Split('\t');
+                        data = line.Split('\t');
 
-                            // Loads the tab references for every group
-                            foreach (Shop shop in shops)
+                        // Loads the tab references for every group
+                        foreach (Shop shop in shops)
+                        {
+                            foreach (Shop.Group group in shop.Groups)
                             {
-                                foreach (Shop.Group group in shop.Groups)
+                                if (group.Name == data[4])
                                 {
-                                    if (group.Name == data[4])
+                                    Shop.Group.Tab tab = new Shop.Group.Tab()
                                     {
-                                        Shop.Group.Tab tab = new Shop.Group.Tab()
-                                        {
-                                            Name = data[3],
-                                            Title = GetTextSystem(data[5])
-                                        };
-                                        group.Tabs.Add(tab);
-                                    }
+                                        Name = data[3],
+                                        Title = GetTextSystem(data[5])
+                                    };
+                                    group.Tabs.Add(tab);
                                 }
                             }
                         }
@@ -2190,26 +2196,23 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip possible empty lines
-                        if ((line = reader.ReadLine()) == null)
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
-                        // Data is enabled in game
-                        if (line.StartsWith("1\t"))
-                        {
-                            data = line.Split('\t');
+                        data = line.Split('\t');
 
-                            // Extract item magic options
-                            string[] magicOptions = new string[byte.Parse(data[7])];
-                            for (byte j = 0; j < magicOptions.Length; j++)
-                                magicOptions[j] = data[j + 8];
+                        // Extract item magic options
+                        string[] magicOptions = new string[byte.Parse(data[7])];
+                        for (byte j = 0; j < magicOptions.Length; j++)
+                            magicOptions[j] = data[j + 8];
 
-                            // 0 = itemServerName
-                            // 1 = plus
-                            // 2 = durability or buyStack (behaviour depends on ID's)
-                            // 3 = magic params (blue options)
-                            refScrapOfPackageItem[data[2]] = new string[] { data[3], data[4], data[6], string.Join(",", magicOptions) };
-                        }
+                        // 0 = itemServerName
+                        // 1 = plus
+                        // 2 = durability or buyStack (behaviour depends on ID's)
+                        // 3 = magic params (blue options)
+                        refScrapOfPackageItem[data[2]] = new string[] { data[3], data[4], data[6], string.Join(",", magicOptions) };
                     }
                 }
 
@@ -2219,10 +2222,9 @@ namespace xBot
                 {
                     while (!reader.EndOfStream)
                     {
-                        // Skip empty lines 
-                        // and check enabled data
                         line = reader.ReadLine();
-                        if (line == null || !line.StartsWith("1\t"))
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
                             continue;
 
                         data = line.Split('\t');
@@ -2319,6 +2321,246 @@ namespace xBot
                 // Commit
                 db.End();
                 
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add TeleportBuildings to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddBuildings(SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE buildings ("
+                    +"id INTEGER PRIMARY KEY,"
+                    +"servername VARCHAR(64), "
+                    +"name VARCHAR(64),"
+                    +"tid2 INTEGER,"
+                    +"tid3 INTEGER,"
+                    +"tid4 INTEGER"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init data holders
+                string line;
+                string[] data;
+
+                // Go through evry file
+                ForEachDataFile(TeleportBuildingPath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            line = reader.ReadLine();
+                            // Skip empty or disabled lines
+                            if(line == null || !line.StartsWith("1\t"))
+                                continue;
+
+                            data = line.Split('\t');
+
+                            // Display progress
+                            WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+
+                            // CHECK IF EXISTS
+                            db.Prepare("SELECT id FROM buildings WHERE id=?");
+                            db.Bind("id", data[1]);
+                            db.ExecuteQuery();
+                            if (db.GetResult().Count == 0)
+                            {
+                                // INSERT
+                                db.Prepare("INSERT INTO buildings (id,servername,name,tid2,tid3,tid4) VALUES(?,?,?,?,?,?,?)");
+                            }
+                            else
+                            {
+                                // UPDATE
+                                db.Prepare("UPDATE buildings SET servername=?,name=?,tid2=?,tid3=?,tid4=? WHERE id=?");
+                            }
+                            db.Bind("id", data[1]);
+                            db.Bind("servername", data[2]);
+                            db.Bind("name", GetTextName(data[5]));
+                            db.Bind("tid2", data[10]);
+                            db.Bind("tid3", data[11]);
+                            db.Bind("tid4", data[12]);
+                            db.ExecuteQuery();
+                        }
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add TeleportLinks to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddTeleportLinks(SQLDatabase db)
+        {
+            try
+            {
+                // Init data holders
+                string line;
+                string[] data;
+                Dictionary<string, string[]> TeleportData = new Dictionary<string, string[]>();
+
+                #region Loading Teleport Data
+                WriteProcess("Loading TeleportData.txt");
+                // Keep Memory safe
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(TeleportDataPath)))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        line = reader.ReadLine();
+                        // Skip empty or disabled lines
+                        if(line == null || !line.StartsWith("1\t"))
+                            continue;
+
+                        data = line.Split('\t');
+
+                        TeleportData[data[1]] = data;
+                    }
+                }
+                #endregion
+
+                // Create transactional table, JOIN teleports with links since will be required all the time
+                string sql = "CREATE TABLE teleportlinks ("
+                    + "source_id INTEGER,"
+                    + "destination_id INTEGER,"
+                    + "source_name VARCHAR(64),"
+                    + "destination_name VARCHAR(64),"
+                    + "id INTEGER,"
+                    + "servername VARCHAR(64),"
+                    + "tid1 INTEGER,"
+                    + "tid2 INTEGER,"
+                    + "tid3 INTEGER,"
+                    + "tid4 INTEGER,"
+                    + "gold INTEGER,"
+                    + "level INTEGER,"
+                    + "source_region INTEGER,"
+                    + "source_x INTEGER,"
+                    + "source_z INTEGER,"
+                    + "source_y INTEGER,"
+                    + "destination_region INTEGER,"
+                    + "destination_x INTEGER,"
+                    + "destination_z INTEGER,"
+                    + "destination_y INTEGER,"
+                    + "PRIMARY KEY (source_id, destination_id)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Data holders
+                string sourceName, destinationName, tid1, tid2, tid3, tid4;
+
+                // Go through evry file
+                ForEachDataFile(TeleportLinkPath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            line = reader.ReadLine();
+                            // Skip empty or disabled lines
+                            if(line == null || !line.StartsWith("1\t"))
+                                continue;
+
+                            data = line.Split('\t');
+
+                            // Display progress
+                            WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+                            
+                            // Extract source name if has one
+                            db.Prepare("SELECT name,tid2,tid3,tid4 FROM characters WHERE id=?");
+                            db.Bind("id",TeleportData[data[1]][3]);
+                            db.ExecuteQuery();
+
+                            var result = db.GetResult();
+                            if(result.Count == 0)
+                            {
+                                // Teleports without gate
+                                sourceName = GetTextName(TeleportData[data[1]][4]);
+                                tid1 = "4";
+                                tid2 = tid3 = tid4 = "0";
+                            }
+                            else
+                            {
+                                sourceName = result[0]["name"];
+                                tid1 = "1"; // character type
+                                tid2 = result[0]["tid2"];
+                                tid3 = result[0]["tid3"];
+                                tid4 = result[0]["tid4"];
+                            }
+
+                            // Extract destination name if has one
+                            db.Prepare("SELECT name,tid2,tid3,tid4 FROM characters WHERE id=?");
+                            db.Bind("id",TeleportData[data[1]][3]);
+                            db.ExecuteQuery();
+
+                            result = db.GetResult();
+                            if(result.Count == 0)
+                                destinationName = GetTextName(TeleportData[data[2]][4]);
+                            else
+                                destinationName = result[0]["name"];
+
+                            // CHECK IF EXISTS
+                            db.Prepare("SELECT id FROM teleportlinks WHERE source_id=? AND destination_id=?");
+                            db.Bind("source_id",data[1]);
+                            db.Bind("destination_id",data[2]);
+                            db.ExecuteQuery();
+                            if (db.GetResult().Count == 0)
+                            {
+                                // INSERT
+                                db.Prepare("INSERT INTO teleportlinks (source_id,destination_id,source_name,destination_name,id,servername,tid1,tid2,tid3,tid4,gold,level,source_region,source_x,source_y,source_z,destination_region,destination_x,destination_y,destination_z) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                            }
+                            else
+                            {
+                                // UPDATE
+                                db.Prepare("UPDATE teleportlinks SET source_name=?,destination_name=?,id=?,servername=?,tid1=?,tid2=?,tid3=?,tid4=?,gold=?,level=?,source_region=?,source_x=?,source_y=?,source_z=?,destination_region=?,destination_x=?,destination_y=?,destination_z=? WHERE source_id=? AND destination_id=?");
+                            }
+                            db.Bind("source_id",data[1]);
+                            db.Bind("destination_id",data[2]);
+                            db.Bind("source_name", sourceName);
+                            db.Bind("destination_name", destinationName);
+                            db.Bind("id", TeleportData[data[1]][3]);
+                            db.Bind("servername", TeleportData[data[1]][2]);
+                            db.Bind("tid1", tid1);
+                            db.Bind("tid2", tid2);
+                            db.Bind("tid3", tid3);
+                            db.Bind("tid4", tid4);
+                            db.Bind("gold", data[3]);
+                            db.Bind("level", data[8]);
+                            db.Bind("source_region", (ushort)short.Parse(TeleportData[data[1]][5]));
+                            db.Bind("source_x", int.Parse(TeleportData[data[1]][6]));
+                            db.Bind("source_z", int.Parse(TeleportData[data[1]][7]));
+                            db.Bind("source_y", int.Parse(TeleportData[data[1]][8]));
+                            db.Bind("destination_region", (ushort)short.Parse(TeleportData[data[2]][5]));
+                            db.Bind("destination_x", int.Parse(TeleportData[data[2]][6]));
+                            db.Bind("destination_z", int.Parse(TeleportData[data[2]][7]));
+                            db.Bind("destination_y", int.Parse(TeleportData[data[2]][8]));
+                            db.ExecuteQuery();
+                        }
+                        // Commit
+                        db.End();
+                    }
+                });
+
                 // Success
                 return true;
             }
