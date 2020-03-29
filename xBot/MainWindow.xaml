@@ -77,7 +77,7 @@
                     </TabItem.Header>
                     <!--Content-->
                     <Border Margin="6,0,0,0" Style="{StaticResource BaseBorderStyle}">
-                        
+
                     </Border>
                 </TabItem>
 
@@ -138,7 +138,7 @@
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="40"/>
                                         </Grid.RowDefinitions>
-                                        
+
                                         <!-- Silkroad servers info -->
                                         <ListView x:Name="Settings_lvwSilkroads"
                                                   Margin="6,6,6,0">
@@ -154,7 +154,7 @@
                                                 </GridView>
                                             </ListView.View>
                                         </ListView>
-                                        
+
                                         <!-- Actions buttons -->
                                         <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions>
@@ -167,13 +167,13 @@
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         Command="{Binding CommandAddSilkroad}">
-                                                        <TextBlock Text="Add"
+                                                    <TextBlock Text="Add"
                                                                    Margin="3,0"/>
                                                 </Button>
                                                 <Button Margin="6,0"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center">
-                                                        <TextBlock Text="Remove"
+                                                    <TextBlock Text="Remove"
                                                                    Margin="3,0"/>
                                                 </Button>
                                             </StackPanel>
@@ -202,23 +202,19 @@
                     </TabControl>
                 </TabItem>
             </TabControl>
-            
+
             <!-- Logger (Macro) -->
-            <RichTextBox Grid.Row="1" 
-                         Height="100" 
-                         VerticalAlignment="Bottom"
-                         Margin="119,0,6,6">
-                <FlowDocument>
-                    <Paragraph>
-                        <Run Text="{Binding TextLogged}" />
-                    </Paragraph>
-                </FlowDocument>
-            </RichTextBox>
+            <TextBox Grid.Row="1"
+                     Height="100" VerticalAlignment="Bottom" Margin="119,0,6,6"
+                     Text="{Binding TextLogged}"
+                     VerticalScrollBarVisibility="Auto"
+                     IsReadOnly="True">
+            </TextBox>
             <!-- Logger (Micro) -->
             <TextBlock Grid.Row="2"
                        Padding="3,1"
-                       Background="{StaticResource HighlightMainBrush}">
-                Created By JellyBitz
+                       Background="{StaticResource HighlightMainBrush}"
+                       Text="Created by JellyBitz">
             </TextBlock>
         </Grid>
     </Border>

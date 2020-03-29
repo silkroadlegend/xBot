@@ -72,6 +72,7 @@
     <Compile Include="Pk2Extractor.xaml.cs">
       <DependentUpon>Pk2Extractor.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pk2ReaderAPI\Formats\SkillData.cs" />
     <Compile Include="Pk2ReaderAPI\Formats\DDSImage.cs" />
     <Compile Include="Pk2ReaderAPI\Pk2File.cs" />
     <Compile Include="Pk2ReaderAPI\Pk2Folder.cs" />

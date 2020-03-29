@@ -89,14 +89,12 @@
                                     <TextBlock>Start Extraction</TextBlock>
                                 </Button>
                                 <!-- Logger (Macro) -->
-                                <RichTextBox Grid.Row="1"
-                                         Margin="6,0,6,6">
-                                    <FlowDocument>
-                                        <Paragraph>
-                                            <Run Text="{Binding TextLogged}" />
-                                        </Paragraph>
-                                    </FlowDocument>
-                                </RichTextBox>
+                                <TextBox Grid.Row="1"
+                                         Margin="6,0,6,6"
+                                         Text="{Binding TextLogged}"
+                                         VerticalScrollBarVisibility="Auto"
+                                         IsReadOnly="True">
+                                </TextBox>
                             </Grid>
                         </Border>
                     </Border>

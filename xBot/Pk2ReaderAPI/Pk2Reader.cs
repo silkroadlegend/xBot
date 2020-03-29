@@ -48,6 +48,11 @@ namespace PK2ReaderAPI
         #endregion
 
         #region Constructor
+        /// <summary>
+        /// Creates and load all entries from the Pk2 file
+        /// </summary>
+        /// <param name="FullPath">Path to the file</param>
+        /// <param name="BlowfishKey">Key used to decrypt the file</param>
         public Pk2Reader(string FullPath, string BlowfishKey)
 		{
 			if (!File.Exists(FullPath))
@@ -76,7 +81,7 @@ namespace PK2ReaderAPI
             try
             {
                 // Reads stream
-                Read(reader.BaseStream.Position, m_RootFolder, "");
+                Read(reader.BaseStream.Position, m_RootFolder, string.Empty);
             }
             catch(Exception ex)
             {

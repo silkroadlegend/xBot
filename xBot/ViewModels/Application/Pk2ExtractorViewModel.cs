@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using xBot.Data;
+using xBot.Pk2ReaderAPI.Formats;
 using xBot.Utility;
 namespace xBot
 {
@@ -857,11 +858,42 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
+
                 // Extract CharacterData to database
                 WriteLine("Extracting CharacterData...");
                 if (!await Task.Run(() => TryAddCharacterData(db)))
                 {
                     WriteLine("Error extracting CharacterData file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+                // Extract LevelData to database
+                WriteLine("Extracting LevelData...");
+                if (!await Task.Run(() => TryAddLevelData(db)))
+                {
+                    WriteLine("Error extracting LevelData file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+                // Extract SkillMasteryData to database
+                WriteLine("Extracting SkillMasteryData...");
+                if (!await Task.Run(() => TryAddSkillMasteryData(db)))
+                {
+                    WriteLine("Error extracting SkillMasteryData file");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+
+                // Extract SkillMasteryData to database
+                WriteLine("Extracting SkillData...");
+                if (!await Task.Run(() => TryAddSkillData(db,true)))
+                {
+                    WriteLine("Error extracting SkillData file");
                     WriteProcess("Error");
                     // Abort the extraction
                     return;
@@ -1174,7 +1206,7 @@ namespace xBot
             if(m_TextDataNameRef.TryGetValue(SN_Reference, out string result))
                 return result;
             // Return empty name as default
-            return "";
+            return string.Empty;
         }
         /// <summary>
         /// Load to memory all system text references
@@ -1229,7 +1261,7 @@ namespace xBot
             if (m_TextUISystemRef.TryGetValue(UI_Reference, out string result))
                 return result;
             // Return empty name as default
-            return "";
+            return string.Empty;
         }
         /// <summary>
         /// Try to add all TextUISystem references to database
@@ -1254,7 +1286,7 @@ namespace xBot
                 foreach (var kv in m_TextUISystemRef)
                 {
                     // Display progress
-                    WriteProcess("Extracting TextUISystem " + ((++i) * 100 / m_TextUISystemRef.Count) + "%");
+                    WriteProcess("Extracting TextUISystem (" + ((++i) * 100 / m_TextUISystemRef.Count) + "%)");
 
                     // INSERT
                     db.Prepare("INSERT INTO textuisystem (_index,servername,text) VALUES (?,?,?);");
@@ -1317,7 +1349,7 @@ namespace xBot
                                 {
 
                                     // Display progress
-                                    WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+                                    WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
 
                                     // CHECK IF EXISTS
                                     db.Prepare("SELECT servername FROM regions WHERE servername=?");
@@ -1397,7 +1429,7 @@ namespace xBot
                                 data = line.Split(new char[] { '\t' }, StringSplitOptions.None);
 
                                 // Display progress
-                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
 
                                 // Try to extract name if has one
                                 name = string.Empty;
@@ -1489,7 +1521,7 @@ namespace xBot
                                 data = line.Split('\t');
 
                                 // Display progress
-                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
 
                                 #region Extracting: Name
                                 // Convert to readable name (this way since it's harcoded in client)
@@ -1581,7 +1613,7 @@ namespace xBot
                                 db.Bind("servername", data[2]);
                                 db.Bind("name", name);
                                 db.Bind("degree", data[4]);
-                                db.Bind("items", string.Join("|", itemTypes));
+                                db.Bind("items", string.Join(",", itemTypes));
                                 db.Bind("value", data[5]);
                                 db.Bind("value_max", int.Parse(data[10]) & ushort.MaxValue);
                                 db.Bind("increase", data[3] == "+");
@@ -1645,7 +1677,7 @@ namespace xBot
                                 data = line.Split('\t');
 
                                 // Display progress
-                                WriteProcess("Extracting " + FileName + " " + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%");
+                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
                                 
                                 // CHECK IF EXISTS
                                 db.Prepare("SELECT id FROM characters WHERE id=?");
@@ -1672,6 +1704,316 @@ namespace xBot
                                 db.ExecuteQuery();
                             }
                         }
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add LevelData to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddLevelData(SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE leveldata ("
+                    + "level INTEGER PRIMARY KEY,"
+                    + "player INTEGER,"
+                    + "mastery_sp INTEGER,"
+                    + "pet INTEGER,"
+                    + "trader INTEGER,"
+                    + "thief INTEGER,"
+                    + "hunter INTEGER"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init Data holders
+                string line;
+                string[] data;
+
+                // Go through evry file
+                ForEachDataFile(LevelDataPath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines and comments
+                            line = reader.ReadLine();
+                            if (line == null || line.StartsWith("//"))
+                                continue;
+
+                            data = line.Split('\t');
+
+                            // Display progress
+                            WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+
+                            // INSERT
+                            db.Prepare("INSERT INTO leveldata (level,player,mastery_sp,pet,trader,thief,hunter) VALUES (?,?,?,?,?,?,?)");
+                            db.Bind("level", data[0]);
+                            db.Bind("player", data[1]);
+                            db.Bind("mastery_sp", data[2]);
+                            db.Bind("pet", data[5]);
+                            db.Bind("trader", data[6] == "-1" ? "0" : data[6]); // for safe ulong casting
+                            db.Bind("thief", data[7] == "-1" ? "0" : data[7]);
+                            db.Bind("hunter", data[8] == "-1" ? "0" : data[8]);
+                            db.ExecuteQuery();
+                        }
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add SkillMasteryData to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddSkillMasteryData(SQLDatabase db)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE masteries ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "name VARCHAR(64),"
+                    + "description VARCHAR(256),"
+                    + "type VARCHAR(64),"
+                    + "weapon_types VARCHAR(12),"
+                    + "icon VARCHAR(64)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init Data holders
+                string line,name,desc,type;
+                string[] data;
+
+                // Go through evry file
+                ForEachDataFile(SkillMasteryDataPath, false, (FilePath, FileName) =>
+                {
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines and comments
+                            line = reader.ReadLine();
+                            if (line == null || line.StartsWith("//"))
+                                continue;
+
+                            data = line.Split('\t');
+
+                            // Avoid wrong data
+                            if (data.Length == 13 && data[2] != "xxx")
+                            {
+                                // Display progress
+                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+
+                                // Extract name if has one
+                                name = GetTextSystem(data[2]);
+                                if (name == string.Empty)
+                                    name = GetTextName(data[2]);
+                                if (name == string.Empty)
+                                    name = data[2];
+                                
+                                // Extract description if has one
+                                desc = GetTextSystem(data[4]);
+                                if (desc == string.Empty)
+                                    desc = GetTextName(data[4]);
+                                if (desc == string.Empty)
+                                    desc = data[4];
+
+                                // Extract type if has one
+                                type = GetTextSystem(data[5]);
+                                if (desc == string.Empty)
+                                    type = GetTextName(data[5]);
+                                if (type == string.Empty)
+                                    type = data[5];
+
+                                // INSERT 
+                                db.Prepare("INSERT INTO masteries (id,name,description,type,weapon_types,icon) VALUES (?,?,?,?,?,?)");
+                                db.Bind("id", data[0]);
+                                db.Bind("name", name);
+                                db.Bind("description", desc);
+                                db.Bind("type", type);
+                                db.Bind("weapon_types", data[8] + "," + data[9] + "," + data[10]);
+                                db.Bind("icon", data[11]);
+                                db.ExecuteQuery();
+                            }
+                        }
+
+                        // Commit
+                        db.End();
+                    }
+                });
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to add SkillData to database
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryAddSkillData(SQLDatabase db,bool isEncrypted)
+        {
+            try
+            {
+                // Create the table
+                string sql = "CREATE TABLE skills ("
+                    + "id INTEGER PRIMARY KEY,"
+                    + "servername VARCHAR(64),"
+                    + "name VARCHAR(64),"
+                    + "description VARCHAR(1024),"
+                    + "casttime INTEGER,"
+                    + "duration INTEGER,"
+                    + "cooldown INTEGER,"
+                    + "mp INTEGER,"
+                    + "level INTEGER,"
+                    + "mastery_id INTEGER,"
+                    + "mastery_sp INTEGER,"
+                    + "group_id INTEGER,"
+                    + "group_name VARCHAR(64),"
+                    + "chain_skill_id INTEGER,"
+                    + "weapon_primary INTEGER,"
+                    + "weapon_secondary INTEGER,"
+                    + "target_required BOOLEAN,"
+                    + "parameters VARCHAR(256),"
+                    + "icon VARCHAR(64)"
+                    + ");";
+                db.ExecuteUnsafeQuery(sql);
+
+                // Init Data holders
+                string line,duration;
+                string[] data;
+                List<string> parameters = new List<string>();
+                byte parameters_MAX = 30;
+
+                // Go through evry file
+                ForEachDataFile(SkillDataEncPointerPath, true, (FilePath, FileName) =>
+                {
+                    // Decode the file if is necessary
+                    Stream stream;
+                    if (isEncrypted)
+                    {
+                        // Display progress
+                        WriteProcess("Decrypting " + FileName + "...");
+
+                        // Decrypt and save the file to be used as stream
+                        stream = new MemoryStream(SkillData.Decrypt(m_Pk2.GetFileBytes(FilePath)));
+                    }
+                    else
+                    {
+                        stream = m_Pk2.GetFileStream(FilePath);
+                    }
+
+                    // Keep memory safe
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        // Cache queries
+                        db.Begin();
+
+                        while (!reader.EndOfStream)
+                        {
+                            // Skip possible empty lines
+                            if ((line = reader.ReadLine()) == null)
+                                continue;
+                            
+                            // Data enabled in game
+                            if (line.StartsWith("1\t"))
+                            {
+                                data = line.Split('\t');
+                                
+                                // Display progress
+                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+
+                                // Add skill params (just a few, not sure how it determinates his count)
+                                parameters.Clear();
+                                for (byte i = 0; i < parameters_MAX; i++)
+                                    parameters.Add(data[SkillData.Param1 + i]);
+
+                                // filter extraction
+                                switch (data[SkillData.Param1])
+                                {
+                                    // Buff type
+                                    case "3":
+                                    case "10":
+                                        duration = SkillData.ReadParamValue(parameters.ToArray(), SkillData.ParamType.SKILL_DURATION);
+                                        // Check if cannto be found
+                                        if (duration == string.Empty)
+                                            // means infinite time
+                                            duration = "1";
+                                        else if (duration.StartsWith("-"))
+                                            // fix negative values
+                                            duration = ((uint)int.Parse(duration)).ToString();
+                                        break;
+                                    default:
+                                        duration = "0";
+                                        break;
+                                }
+
+                                // CHECK IF EXISTS
+                                db.Prepare("SELECT id FROM skills WHERE id=?");
+                                db.Bind("id", data[SkillData.ID]);
+                                db.ExecuteQuery();
+                                if (db.GetResult().Count == 0)
+                                {
+                                    // INSERT
+                                    db.Prepare("INSERT INTO skills (id,servername,name,description,casttime,duration,cooldown,mp,level,mastery_id,mastery_sp,group_id,group_name,chain_skill_id,weapon_primary,weapon_secondary,target_required,parameters,icon) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                                }
+                                else
+                                {
+                                    // UPDATE
+                                    db.Prepare("UPDATE skills SET servername=?,name=?,description=?,casttime=?,duration=?,cooldown=?,mp=?,level=?,mastery_id=?,mastery_sp=?,group_id=?,group_name=?,chain_skill_id=?,weapon_primary=?,weapon_secondary=?,target_required=?,parameters=?,icon=? WHERE id=?");
+                                }
+                                db.Bind("id", data[SkillData.ID]);
+                                db.Bind("servername", data[SkillData.Basic_Code]);
+                                db.Bind("name", data[SkillData.UI_SkillName] != "xxx"? GetTextName(data[SkillData.UI_SkillName]):string.Empty);
+                                db.Bind("description", data[SkillData.UI_SkillToolTip_Desc] != "xxx" ? GetTextName(data[SkillData.UI_SkillToolTip_Desc]) : string.Empty);
+                                db.Bind("casttime", int.Parse(data[SkillData.Action_PreparingTime]) + int.Parse(data[SkillData.Action_CastingTime]) + int.Parse(data[SkillData.Action_ActionDuration]));
+                                db.Bind("duration", duration);
+                                db.Bind("cooldown", data[SkillData.Action_ReuseDelay]);
+                                db.Bind("mana", data[SkillData.Consume_MP]);
+                                db.Bind("level", data[SkillData.ReqCommon_MasteryLevel1]);
+                                db.Bind("mastery_id", data[SkillData.ReqCommon_Mastery1]);
+                                db.Bind("mastery_sp", data[SkillData.ReqLearn_SP]);
+                                db.Bind("group_id", data[SkillData.GroupID]);
+                                db.Bind("group_name", data[SkillData.Basic_Group]);
+                                db.Bind("chain_skill_id", data[SkillData.Basic_ChainCode]);
+                                db.Bind("weapon_primary", data[SkillData.ReqCast_Weapon1]);
+                                db.Bind("weapon_secondary", data[SkillData.ReqCast_Weapon2]);
+                                db.Bind("target_required", data[SkillData.Target_Required]);
+                                db.Bind("parameters", string.Join(",", parameters));
+                                db.Bind("icon", data[SkillData.UI_IconFile]);
+                                db.ExecuteQuery();
+                            }
+                        }
+                        // Delete it
+                        stream.Close();
+                        stream.Dispose();
+
                         // Commit
                         db.End();
                     }
