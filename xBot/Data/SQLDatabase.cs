@@ -72,7 +72,6 @@ namespace xBot.Data
         {
             try
             {
-                string a = System.IO.Path.GetFullPath(Path);
                 // Creates the connection by guessing the database exists
                 m_Connection = new SQLiteConnection("Data Source=" + System.IO.Path.GetFullPath(Path) + ";Version=3;");
                 // Initialize synchronized commands

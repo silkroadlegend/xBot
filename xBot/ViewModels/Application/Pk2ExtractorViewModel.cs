@@ -13,6 +13,7 @@ using System.Windows.Input;
 using xBot.Data;
 using xBot.Utility;
 using System.Drawing.Imaging;
+using System.Threading;
 
 namespace xBot
 {
@@ -23,6 +24,10 @@ namespace xBot
         /// The window this view model controls
         /// </summary>
         private Window m_Window;
+        /// <summary>
+        /// Token to cancel the asynchronized extraction processes
+        /// </summary>
+        CancellationTokenSource m_ExtractionCancelToken;
         /// <summary>
         /// The full path to the Pk2 file
         /// </summary>
@@ -86,7 +91,7 @@ namespace xBot
             m_CharacterDataPointerPath = "server_dep/silkroad/textdata/CharacterData.txt",
             m_LevelDataPath = "server_dep/silkroad/textdata/LevelData.txt",
             m_SkillMasteryDataPath = "server_dep/silkroad/textdata/SkillMasteryData.txt",
-            m_SkillDataEncPointerPath = "server_dep/silkroad/textdata/SkillDataEnc.txt",
+            m_SkillDataPointerPath = "server_dep/silkroad/textdata/SkillDataEnc.txt",
             m_refShopGroupPath = "server_dep/silkroad/textdata/refShopGroup.txt",
             m_refMappingShopGroupPath = "server_dep/silkroad/textdata/refMappingShopGroup.txt",
             m_refMappingShopWithTabPath = "server_dep/silkroad/textdata/refMappingShopWithTab.txt",
@@ -111,6 +116,10 @@ namespace xBot
         /// The Pk2 reader used to extract all info
         /// </summary>
         private Pk2Reader m_Pk2;
+        /// <summary>
+        /// The database connection to allocate all the server info
+        /// </summary>
+        private SQLDatabase m_Database;
         private Dictionary<string, string> m_TextDataNameRef;
         private Dictionary<string, string> m_TextUISystemRef;
         #endregion
@@ -452,15 +461,15 @@ namespace xBot
         /// <summary>
         /// Pk2 path to the pointer SkillDataEnc file names
         /// </summary>
-        public string SkillDataEncPointerPath
+        public string SkillDataPointerPath
         {
-            get { return m_SkillDataEncPointerPath; }
+            get { return m_SkillDataPointerPath; }
             set
             {
                 // set new value
-                m_SkillDataEncPointerPath = value;
+                m_SkillDataPointerPath = value;
                 // notify event
-                OnPropertyChanged(nameof(SkillDataEncPointerPath));
+                OnPropertyChanged(nameof(SkillDataPointerPath));
             }
         }
         /// <summary>
@@ -636,6 +645,10 @@ namespace xBot
         /// Starts the Pk2 extraction
         /// </summary>
         public ICommand CommandStartExtraction { get; set; }
+        /// <summary>
+        /// Cancel the Pk2 extraction inmediatly
+        /// </summary>
+        public ICommand CommandCancelExtraction { get; set; }
         #endregion
 
         #region Constructor
@@ -646,7 +659,9 @@ namespace xBot
         {
             // Save references
             m_Window = Window;
-            
+            // Async cancel (safe abort)
+            m_ExtractionCancelToken = new CancellationTokenSource();
+
             // Set path to work
             m_FullPath = FullPath;
             // Silkroad identification
@@ -674,8 +689,10 @@ namespace xBot
                 m_Window.WindowState = m_Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
             });
             CommandClose = new RelayCommand(m_Window.Close);
-
+            
             CommandStartExtraction = new RelayCommand(async () => await StartExtraction());
+            // Cancel if is extracting only
+            CommandCancelExtraction = new RelayCommand(() => { if (IsExtracting) m_ExtractionCancelToken.Cancel(); });
         }
         #endregion
 
@@ -705,314 +722,336 @@ namespace xBot
         /// </summary>
         public async Task StartExtraction()
         {
-            // Database link
-            SQLDatabase db = null;
-
-            await RunCommandAsync(() => IsExtracting, async () =>
-            {
-                #region Loading Pk2
-                WriteLine("Loading the Pk2 file...");
-                WriteProcess("Opening Pk2 file...");
-                // Just make sure the Blowfish key is set correctly
-                if (string.IsNullOrEmpty(BlowfishKey))
-                    BlowfishKey = "169841";
-
-                // Try to open the Pk2 file
-                if (!await Task.Run(() => TryLoadPk2(BlowfishKey)))
+            // Lock the command
+            await RunCommandAsync(() => IsExtracting, async () => {
+                try
                 {
-                    // Show failure error
-                    WriteLine("Error opening the Pk2 file. Wrong blowfish key");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
+                    await ExtractionProcess(m_ExtractionCancelToken.Token);
                 }
-                WriteLine("Pk2 file has been loaded correctly!");
-                WriteProcess("Opened");
-                #endregion
-
-                #region Database connection
-                // Try to create, and connect to the database
-                db = new SQLDatabase();
-                string dbPath = FileManager.GetDatabaseFile(SilkroadID);
-
-                WriteProcess("Creating database...");
-                if (!await Task.Run(() => db.Create(dbPath)))
-                {
-                    // Show failure error
-                    WriteLine("Error creating the database. Please, close all bots and try again!");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
+                catch {
+                    System.Diagnostics.Debug.WriteLine("Extraction process has been canceled");
                 }
-                WriteProcess("Connecting to database...");
-                if (!await Task.Run(() => db.Connect(dbPath)))
-                {
-                    // Show failure error
-                    WriteLine("Error connecting to the database. Please, close all bots and try again!");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
+                finally {
+                    // Close database & pk2 before exit
+                    m_Database?.Close();
+                    m_Pk2?.Close();
                 }
-                WriteLine("Database created and connected successfully!");
-                #endregion
-
-                #region Extraction: Silkroad Information
-                WriteLine("Extracting server information...");
-                WriteProcess("Extracting server information");
-
-                // Create the table which contains the basic info
-                await db.ExecuteQuickQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
-
-                // Add Silkroad files type
-                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
-
-                // Add Locale
-                WriteProcess("Extracting locale...");
-                byte locale = byte.MinValue;
-                if (!await Task.Run(() => TryGetLocale(out locale)))
-                {
-                    WriteLine("Error extracting the locale used by th client");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
-                Locale = locale;
-
-                // Add Version
-                WriteProcess("Extracting version...");
-                uint version = uint.MinValue;
-                if (!await Task.Run(() => TryGetVersion(out version)))
-                {
-                    WriteLine("Error extracting the version used by the client");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    db.Close();
-                    return;
-                }
-                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
-                Version = version;
-
-                // Add Division Info
-                WriteProcess("Extracting division info...");
-                Dictionary<string, List<string>> divisionsInfo = null;
-                if (!await Task.Run(() => TryGetDivisionInfo(out divisionsInfo)))
-                {
-                    WriteLine("Error extracting the division info used for the connection");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-                // To string line representation
-                string divisionInfoText = await Task.Run(()=> {
-                    List<string> divs = new List<string>();
-                    foreach (KeyValuePair<string, List<string>> div in divisionsInfo)
-                        divs.Add(div.Key + ":" + string.Join(",", div.Value));
-                    return string.Join("|", divs);
-                });
-                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
-                DivisionInfo = divisionInfoText;
-
-                // Add Gateway port
-                WriteProcess("Extracting port...");
-                ushort gateport = ushort.MinValue;
-                if (!await Task.Run(() => TryGetGateport(out gateport)))
-                {
-                    WriteLine("Error extracting the port used for the connection");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
-                Gateport = gateport;
-                #endregion
-
-                #region Extraction: Client data
-                // Extract lang to start loading all text references
-                WriteProcess("Extracting language...");
-                string langName = string.Empty;
-                byte langIndex = byte.MinValue;
-                if (!await Task.Run(() => TryGetLanguage(out langIndex, out langName)))
-                    WriteLine("Error extracting language, using default index (" + langIndex + ")");
-                else
-                    WriteLine("Using " + langName + " (" + langIndex + ") as language");
-
-                // Load text references
-                WriteLine("Loading names references...");
-                WriteProcess("Loading TextDataName");
-                if (!await Task.Run(() => TryLoadTextDataName(langIndex)))
-                {
-                    WriteLine("Error loading TextDataName file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Load system references
-                WriteLine("Loading system text references...");
-                WriteProcess("Loading TextUISystem");
-                if (!await Task.Run(() => TryLoadTextUISystem(langIndex)))
-                {
-                    WriteLine("Error loading TextUISystem file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract system references to database
-                WriteLine("Extracting system text references...");
-                if (!await Task.Run(() => TryAddTextUISystem(db)))
-                {
-                    WriteLine("Error extracting TextUISystem file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-                
-                // Extract regions references to database
-                WriteLine("Extracting region names references...");
-                if (!await Task.Run(() => TryAddTextZoneName(langIndex, db)))
-                {
-                    WriteLine("Error extracting TextZoneName file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-                
-                // Extract ItemData to database
-                WriteLine("Extracting items...");
-                if (!await Task.Run(() => TryAddItemData(db)))
-                {
-                    WriteLine("Error extracting ItemData files");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract MagicOption to database
-                WriteLine("Extracting magic options...");
-                if (!await Task.Run(() => TryAddMagicOption(db)))
-                {
-                    WriteLine("Error extracting MagicOption file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract CharacterData to database
-                WriteLine("Extracting character objects...");
-                if (!await Task.Run(() => TryAddCharacterData(db)))
-                {
-                    WriteLine("Error extracting CharacterData files");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract LevelData to database
-                WriteLine("Extracting levels informaton...");
-                if (!await Task.Run(() => TryAddLevelData(db)))
-                {
-                    WriteLine("Error extracting LevelData file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract SkillMasteryData to database
-                WriteLine("Extracting masteries...");
-                if (!await Task.Run(() => TryAddSkillMasteryData(db)))
-                {
-                    WriteLine("Error extracting SkillMasteryData file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract SkillData to database
-                WriteLine("Extracting skills...");
-                if (!await Task.Run(() => TryAddSkillData(db,true)))
-                {
-                    WriteLine("Error extracting SkillData files");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract ShopData to database
-                WriteLine("Extracting shops...");
-                if (!await Task.Run(() => TryAddShops(db)))
-                {
-                    WriteLine("Error extracting shop files references");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract TeleportBuilding to database
-                WriteLine("Extracting buildings...");
-                if (!await Task.Run(() => TryAddBuildings(db)))
-                {
-                    WriteLine("Error extracting buildings file");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                // Extract TeleportBuilding to database
-                WriteLine("Extracting teleports...");
-                if (!await Task.Run(() => TryAddTeleportLinks(db)))
-                {
-                    WriteLine("Error extracting teleport files");
-                    WriteProcess("Error");
-                    // Abort the extraction
-                    return;
-                }
-
-                WriteLine("Database generated successfully!");
-                #endregion
-
-                #region Extraction: Image & Icons
-                if (ExtractIcons)
-                {
-                    // Extract icons to silkroad folder
-                    WriteLine("Extracting icon images...");
-                    if (!await Task.Run(() => TryExtractIcons(db)))
-                    {
-                        WriteLine("Error extracting icon images");
-                        WriteProcess("Error");
-                        // Abort the extraction
-                        return;
-                    }
-                }
-                if (ExtractMinimap)
-                {
-                    var a = m_Pk2;
-                    // Extract minimap to app folder
-                    WriteLine("Extracting minimap images...");
-                    if (!await Task.Run(() => TryExtractMinimap()))
-                    {
-                        WriteLine("Error extracting minimap images");
-                        WriteProcess("Error");
-                        // Abort the extraction
-                        return;
-                    }
-                }
-                #endregion
-
-                WriteProcess("Ready");
-
-                // Everything has been generated just fine
-                // m_Window.DialogResult = true;
             });
-
-            // Close database & pk2 before exit
-            db?.Close();
-            m_Pk2?.Close();
         }
         #endregion
 
         #region Private Helpers
+        private async Task ExtractionProcess(CancellationToken token)
+        {
+            // Starts a timer to check the extraction time on finish
+            System.Diagnostics.Stopwatch timer = System.Diagnostics.Stopwatch.StartNew();
+
+            #region Loading Pk2
+            WriteLine("Loading the Pk2 file...");
+            WriteProcess("Opening Pk2 file...");
+            // Just make sure the Blowfish key is set correctly
+            if (string.IsNullOrEmpty(BlowfishKey))
+                BlowfishKey = "169841";
+
+            // Try to open the Pk2 file
+            if (!await Task.Run(() => TryLoadPk2(BlowfishKey)).WaitAsync(token))
+            {
+                // Show failure error
+                WriteLine("Error opening the Pk2 file. Wrong blowfish key");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            WriteLine("Pk2 file has been loaded correctly!");
+            WriteProcess("Opened");
+            #endregion
+
+            #region Database connection
+            // Try to create, and connect to the database
+            string dbPath = FileManager.GetDatabaseFile(SilkroadID);
+
+            this.m_Database = new SQLDatabase();
+            WriteProcess("Creating database...");
+            if (!await Task.Run(() => this.m_Database.Create(dbPath)).WaitAsync(token))
+            {
+                // Show failure error
+                WriteLine("Error creating the database. Please, close all bots and try again!");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            WriteProcess("Connecting to database...");
+            if (!await Task.Run(() => m_Database.Connect(dbPath)).WaitAsync(token))
+            {
+                // Show failure error
+                WriteLine("Error connecting to the database. Please, close all bots and try again!");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            WriteLine("Database created and connected successfully!");
+            #endregion
+
+            #region Extraction: Silkroad Information
+            WriteLine("Extracting server information...");
+            WriteProcess("Extracting server information");
+
+            // Create the table which contains the basic info
+            await m_Database.ExecuteQuickQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
+
+            // Add Silkroad files type
+            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
+
+            // Add Locale
+            WriteProcess("Extracting locale...");
+            byte locale = byte.MinValue;
+            if (!await Task.Run(()=> TryGetLocale(out locale)).WaitAsync(token))
+            {
+                WriteLine("Error extracting the locale used by th client");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
+            Locale = locale;
+
+            // Add Version
+            WriteProcess("Extracting version...");
+            uint version = uint.MinValue;
+            if (!await Task.Run(() => TryGetVersion(out version)).WaitAsync(token))
+            {
+                WriteLine("Error extracting the version used by the client");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
+            Version = version;
+
+            // Add Division Info
+            WriteProcess("Extracting division info...");
+            Dictionary<string, List<string>> divisionsInfo = null;
+            if (!await Task.Run(() => TryGetDivisionInfo(out divisionsInfo)).WaitAsync(token))
+            {
+                WriteLine("Error extracting the division info used for the connection");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            // To string line representation
+            string divisionInfoText;
+            {
+                List<string> divs = new List<string>();
+                foreach (KeyValuePair<string, List<string>> div in divisionsInfo)
+                    divs.Add(div.Key + ":" + string.Join(",", div.Value));
+                divisionInfoText = string.Join("|", divs);
+            }
+            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
+            DivisionInfo = divisionInfoText;
+
+            // Add Gateway port
+            WriteProcess("Extracting port...");
+            ushort gateport = ushort.MinValue;
+            if (!await Task.Run(() => TryGetGateport(out gateport)).WaitAsync(token))
+            {
+                WriteLine("Error extracting the port used for the connection");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+            await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
+            Gateport = gateport;
+            #endregion
+
+            #region Extraction: Client data
+            // Extract lang to start loading all text references
+            WriteProcess("Extracting language...");
+            string langName = string.Empty;
+            byte langIndex = byte.MinValue;
+            if (!await Task.Run(() => TryGetLanguage(out langIndex, out langName)).WaitAsync(token))
+                WriteLine("Error extracting language, using default index (" + langIndex + ")");
+            else
+                WriteLine("Using " + langName + " (" + langIndex + ") as language");
+
+            // Load text references
+            WriteLine("Loading names references...");
+            WriteProcess("Loading TextDataName");
+            if (!await Task.Run(() => TryLoadTextDataName(langIndex)).WaitAsync(token))
+            {
+                WriteLine("Error loading TextDataName file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Load system references
+            WriteLine("Loading system text references...");
+            WriteProcess("Loading TextUISystem");
+            if (!await Task.Run(() => TryLoadTextUISystem(langIndex)).WaitAsync(token))
+            {
+                WriteLine("Error loading TextUISystem file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract system references to database
+            WriteLine("Extracting system text references...");
+            if (!await Task.Run(() => TryAddTextUISystem(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting TextUISystem file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract regions references to database
+            WriteLine("Extracting region names references...");
+            if (!await Task.Run(() => TryAddTextZoneName(langIndex, m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting TextZoneName file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract ItemData to database
+            WriteLine("Extracting items...");
+            if (!await Task.Run(() => TryAddItemData(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting ItemData files");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract MagicOption to database
+            WriteLine("Extracting magic options...");
+            if (!await Task.Run(() => TryAddMagicOption(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting MagicOption file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract CharacterData to database
+            WriteLine("Extracting character objects...");
+            if (!await Task.Run(() => TryAddCharacterData(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting CharacterData files");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract LevelData to database
+            WriteLine("Extracting levels informaton...");
+            if (!await Task.Run(() => TryAddLevelData(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting LevelData file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract SkillMasteryData to database
+            WriteLine("Extracting masteries...");
+            if (!await Task.Run(() => TryAddSkillMasteryData(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting SkillMasteryData file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract SkillData to database
+            WriteLine("Extracting skills...");
+            if (!await Task.Run(() => TryAddSkillData(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting SkillData files");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract ShopData to database
+            WriteLine("Extracting shops...");
+            if (!await Task.Run(() => TryAddShops(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting shop files references");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract TeleportBuilding to database
+            WriteLine("Extracting buildings...");
+            if (!await Task.Run(() => TryAddBuildings(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting buildings file");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            // Extract TeleportBuilding to database
+            WriteLine("Extracting teleports...");
+            if (!await Task.Run(() => TryAddTeleportLinks(m_Database)).WaitAsync(token))
+            {
+                WriteLine("Error extracting teleport files");
+                WriteProcess("Error");
+                // Abort the extraction
+                return;
+            }
+
+            WriteLine("Database generated successfully!");
+            #endregion
+
+            #region Extraction: Image & Icons
+            if (ExtractIcons)
+            {
+                // Extract icons to silkroad folder
+                WriteLine("Extracting icon images...");
+                if (!await Task.Run(() => TryExtractIcons(m_Database)).WaitAsync(token))
+                {
+                    WriteLine("Error extracting icon images");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+            }
+            if (ExtractMinimap)
+            {
+                var a = m_Pk2;
+                // Extract minimap to app folder
+                WriteLine("Extracting minimap images...");
+                if (!await Task.Run(() => TryExtractMinimap()).WaitAsync(token))
+                {
+                    WriteLine("Error extracting minimap images");
+                    WriteProcess("Error");
+                    // Abort the extraction
+                    return;
+                }
+            }
+            #endregion
+
+            // Everything has been extracted just fine
+            timer.Stop();
+            WriteLine("All has been extracted successfully in "
+                + (Math.Round(timer.Elapsed.TotalMinutes) > 0 ? Math.Round(timer.Elapsed.TotalMinutes) + "min " : "")
+                + (timer.Elapsed.Seconds > 0 ? timer.Elapsed.Seconds + "s " : "")
+            );
+
+            // Auto close this
+            for (byte i = 3; i > 0; i--)
+            {
+                WriteProcess("Closing in " + i + "...");
+                await Task.Delay(1000);
+            }
+            m_Window.DialogResult = true;
+        }
         /// <summary>
         /// Creates a hash based on a MD5 algorithm.
         /// </summary>
@@ -1044,7 +1083,10 @@ namespace xBot
                 m_Pk2 = new Pk2Reader(m_FullPath, BlowfishKey);
                 return true;
             }
-            catch { return false; }
+            catch {
+                m_Pk2.Close();
+                return false;
+            }
         }
         /// <summary>
         /// Try to get the Silkroad version from Pk2
@@ -1973,7 +2015,7 @@ namespace xBot
         /// </summary>
         /// <param name="db">The database connection</param>
         /// <returns>Return success</returns>
-        private bool TryAddSkillData(SQLDatabase db,bool isEncrypted)
+        private bool TryAddSkillData(SQLDatabase db)
         {
             try
             {
@@ -2008,107 +2050,89 @@ namespace xBot
                 byte parameters_MAX = 30;
 
                 // Go through evry file
-                ForEachDataFile(SkillDataEncPointerPath, true, (FilePath, FileName) =>
+                ForEachDataFile(SkillDataPointerPath, true, (FilePath, FileName) =>
                 {
-                    // Decode the file if is necessary
-                    Stream stream;
-                    if (isEncrypted)
-                    {
-                        // Display progress
-                        WriteProcess("Decrypting " + FileName + "...");
+                    // Display progress
+                    WriteProcess("Processing " + FileName + "...");
 
-                        // Decrypt and save the file to be used as stream
-                        stream = new MemoryStream(SkillData.Decrypt(m_Pk2.GetFileBytes(FilePath)));
-                    }
-                    else
-                    {
-                        stream = m_Pk2.GetFileStream(FilePath);
-                    }
-
-                    // Keep memory safe
-                    using (StreamReader reader = new StreamReader(stream))
+                    // Keep memory safe, decrypts the file if is necessary
+                    using (StreamReader reader = new StreamReader(new MemoryStream(SkillData.Decrypt(m_Pk2.GetFileBytes(FilePath)))))
                     {
                         // Cache queries
                         db.Begin();
 
                         while (!reader.EndOfStream)
                         {
-                            // Skip possible empty lines
-                            if ((line = reader.ReadLine()) == null)
+                            line = reader.ReadLine();
+                            // Skip empty or disabled lines
+                            if (line == null || !line.StartsWith("1\t"))
                                 continue;
-                            
-                            // Data enabled in game
-                            if (line.StartsWith("1\t"))
+
+                            data = line.Split('\t');
+
+                            // Display progress
+                            WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
+
+                            // Add skill params (just a few, not sure how it determinates his count)
+                            parameters.Clear();
+                            for (byte i = 0; i < parameters_MAX; i++)
+                                parameters.Add(data[SkillData.Param1 + i]);
+
+                            // filter extraction
+                            switch (data[SkillData.Param1])
                             {
-                                data = line.Split('\t');
-                                
-                                // Display progress
-                                WriteProcess("Extracting " + FileName + " (" + (reader.BaseStream.Position * 100 / reader.BaseStream.Length) + "%)");
-
-                                // Add skill params (just a few, not sure how it determinates his count)
-                                parameters.Clear();
-                                for (byte i = 0; i < parameters_MAX; i++)
-                                    parameters.Add(data[SkillData.Param1 + i]);
-
-                                // filter extraction
-                                switch (data[SkillData.Param1])
-                                {
-                                    // Buff type
-                                    case "3":
-                                    case "10":
-                                        duration = SkillData.ReadParamValue(parameters.ToArray(), SkillData.ParamType.SKILL_DURATION);
-                                        // Check if cannto be found
-                                        if (duration == string.Empty)
-                                            // means infinite time
-                                            duration = "1";
-                                        else if (duration.StartsWith("-"))
-                                            // fix negative values
-                                            duration = ((uint)int.Parse(duration)).ToString();
-                                        break;
-                                    default:
-                                        duration = "0";
-                                        break;
-                                }
-
-                                // CHECK IF EXISTS
-                                db.Prepare("SELECT id FROM skills WHERE id=?");
-                                db.Bind("id", data[SkillData.ID]);
-                                db.ExecuteQuery();
-                                if (db.GetResult().Count == 0)
-                                {
-                                    // INSERT
-                                    db.Prepare("INSERT INTO skills (id,servername,name,description,casttime,duration,cooldown,mp,level,mastery_id,mastery_sp,group_id,group_name,chain_skill_id,weapon_primary,weapon_secondary,target_required,parameters,icon) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                                }
-                                else
-                                {
-                                    // UPDATE
-                                    db.Prepare("UPDATE skills SET servername=?,name=?,description=?,casttime=?,duration=?,cooldown=?,mp=?,level=?,mastery_id=?,mastery_sp=?,group_id=?,group_name=?,chain_skill_id=?,weapon_primary=?,weapon_secondary=?,target_required=?,parameters=?,icon=? WHERE id=?");
-                                }
-                                db.Bind("id", data[SkillData.ID]);
-                                db.Bind("servername", data[SkillData.Basic_Code]);
-                                db.Bind("name", data[SkillData.UI_SkillName] != "xxx"? GetTextName(data[SkillData.UI_SkillName]):string.Empty);
-                                db.Bind("description", data[SkillData.UI_SkillToolTip_Desc] != "xxx" ? GetTextName(data[SkillData.UI_SkillToolTip_Desc]) : string.Empty);
-                                db.Bind("casttime", int.Parse(data[SkillData.Action_PreparingTime]) + int.Parse(data[SkillData.Action_CastingTime]) + int.Parse(data[SkillData.Action_ActionDuration]));
-                                db.Bind("duration", duration);
-                                db.Bind("cooldown", data[SkillData.Action_ReuseDelay]);
-                                db.Bind("mana", data[SkillData.Consume_MP]);
-                                db.Bind("level", data[SkillData.ReqCommon_MasteryLevel1]);
-                                db.Bind("mastery_id", data[SkillData.ReqCommon_Mastery1]);
-                                db.Bind("mastery_sp", data[SkillData.ReqLearn_SP]);
-                                db.Bind("group_id", data[SkillData.GroupID]);
-                                db.Bind("group_name", data[SkillData.Basic_Group]);
-                                db.Bind("chain_skill_id", data[SkillData.Basic_ChainCode]);
-                                db.Bind("weapon_primary", data[SkillData.ReqCast_Weapon1]);
-                                db.Bind("weapon_secondary", data[SkillData.ReqCast_Weapon2]);
-                                db.Bind("target_required", data[SkillData.Target_Required]);
-                                db.Bind("parameters", string.Join(",", parameters));
-                                db.Bind("icon", data[SkillData.UI_IconFile]);
-                                db.ExecuteQuery();
+                                // Buff type
+                                case "3":
+                                case "10":
+                                    duration = SkillData.ReadParamValue(parameters.ToArray(), SkillData.ParamType.SKILL_DURATION);
+                                    // Check if cannto be found
+                                    if (duration == string.Empty)
+                                        // means infinite time
+                                        duration = "1";
+                                    else if (duration.StartsWith("-"))
+                                        // fix negative values
+                                        duration = ((uint)int.Parse(duration)).ToString();
+                                    break;
+                                default:
+                                    duration = "0";
+                                    break;
                             }
+
+                            // CHECK IF EXISTS
+                            db.Prepare("SELECT id FROM skills WHERE id=?");
+                            db.Bind("id", data[SkillData.ID]);
+                            db.ExecuteQuery();
+                            if (db.GetResult().Count == 0)
+                            {
+                                // INSERT
+                                db.Prepare("INSERT INTO skills (id,servername,name,description,casttime,duration,cooldown,mp,level,mastery_id,mastery_sp,group_id,group_name,chain_skill_id,weapon_primary,weapon_secondary,target_required,parameters,icon) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                            }
+                            else
+                            {
+                                // UPDATE
+                                db.Prepare("UPDATE skills SET servername=?,name=?,description=?,casttime=?,duration=?,cooldown=?,mp=?,level=?,mastery_id=?,mastery_sp=?,group_id=?,group_name=?,chain_skill_id=?,weapon_primary=?,weapon_secondary=?,target_required=?,parameters=?,icon=? WHERE id=?");
+                            }
+                            db.Bind("id", data[SkillData.ID]);
+                            db.Bind("servername", data[SkillData.Basic_Code]);
+                            db.Bind("name", data[SkillData.UI_SkillName] != "xxx" ? GetTextName(data[SkillData.UI_SkillName]) : string.Empty);
+                            db.Bind("description", data[SkillData.UI_SkillToolTip_Desc] != "xxx" ? GetTextName(data[SkillData.UI_SkillToolTip_Desc]) : string.Empty);
+                            db.Bind("casttime", int.Parse(data[SkillData.Action_PreparingTime]) + int.Parse(data[SkillData.Action_CastingTime]) + int.Parse(data[SkillData.Action_ActionDuration]));
+                            db.Bind("duration", duration);
+                            db.Bind("cooldown", data[SkillData.Action_ReuseDelay]);
+                            db.Bind("mana", data[SkillData.Consume_MP]);
+                            db.Bind("level", data[SkillData.ReqCommon_MasteryLevel1]);
+                            db.Bind("mastery_id", data[SkillData.ReqCommon_Mastery1]);
+                            db.Bind("mastery_sp", data[SkillData.ReqLearn_SP]);
+                            db.Bind("group_id", data[SkillData.GroupID]);
+                            db.Bind("group_name", data[SkillData.Basic_Group]);
+                            db.Bind("chain_skill_id", data[SkillData.Basic_ChainCode]);
+                            db.Bind("weapon_primary", data[SkillData.ReqCast_Weapon1]);
+                            db.Bind("weapon_secondary", data[SkillData.ReqCast_Weapon2]);
+                            db.Bind("target_required", data[SkillData.Target_Required]);
+                            db.Bind("parameters", string.Join(",", parameters));
+                            db.Bind("icon", data[SkillData.UI_IconFile]);
+                            db.ExecuteQuery();
                         }
-                        // Delete it
-                        stream.Close();
-                        stream.Dispose();
 
                         // Commit
                         db.End();
@@ -2684,7 +2708,7 @@ namespace xBot
                             // Read DDJ
                             JMXVDDJ _JMXVDDJ = new JMXVDDJ(m_Pk2.GetFileStream(DDJFile));
                             // Save as PNG
-                            _JMXVDDJ.Texture.Save(saveFilePath, System.Drawing.Imaging.ImageFormat.Png);
+                            _JMXVDDJ.Texture.Save(saveFilePath,ImageFormat.Png);
                         }
                         catch { }
                     }

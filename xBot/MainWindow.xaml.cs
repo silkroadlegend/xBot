@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace xBot
@@ -18,14 +19,28 @@ namespace xBot
             DataContext = new MainWindowViewModel(this);
         }
 
-        #region UI Behavior Methods
+        #region Events about UI behavior only
         /// <summary>
         /// Drag the window when the control is click holding
         /// </summary>
-        private void AnyControl_DragWindow(object sender, MouseButtonEventArgs e)
+        private void Control_MouseDown_DragWindow(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
                 this.DragMove();
+        }
+        /// <summary>
+        /// Auto scrolls the caret to the buttom but only if is in bottom
+        /// </summary>
+        private void TextBox_TextChanged_AutoScroll(object sender, TextChangedEventArgs e)
+        {
+            TextBox t = (TextBox)sender;
+
+            // Get bottom caret indexes
+            int indexStart = t.GetLastVisibleLineIndex();
+            int indexEnds = t.Text.Length - 1;
+            // Scroll if caret index was in bottom
+            if (t.CaretIndex >= indexStart && t.CaretIndex <= indexEnds)
+                t.CaretIndex = indexEnds;
         }
         #endregion
     }

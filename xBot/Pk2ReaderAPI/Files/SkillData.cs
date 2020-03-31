@@ -201,22 +201,23 @@ namespace Pk2ReaderAPI.Files
         /// <summary>
         /// Encrypts the file
         /// </summary>
-        /// <param name="SkillDataEncrypted">The stream which contains the skilldata.txt file</param>
+        /// <param name="skillDataBuffer">The byte array which contains the skilldata.txt file</param>
         /// <returns>Returns the data encrypted</returns>
-        public static byte[] Encrypt(Stream SkillDataEncrypted)
+        public static byte[] Encrypt(byte[] skillDataBuffer)
         {
             throw new NotImplementedException();
         }
         /// <summary>
-        /// Decrypts the file if is necessary
+        /// Decrypts the file but only if is necessary
         /// </summary>
-        /// <param name="buffer">The byte array from SkillDataEnc.txt file</param>
+        /// <param name="skillDataBuffer">The byte array from SkillData files</param>
         /// <returns>Returns the data decrypted</returns>
-        public static byte[] Decrypt(byte[] buffer)
+        public static byte[] Decrypt(byte[] skillDataBuffer)
         {
-            // Check if the data is truly encoded
-            if (buffer[0] == 0xE2 && buffer[1] == 0xB0) {
-
+             // Check if the data is correct and truly encoded
+            if (skillDataBuffer != null && skillDataBuffer.Length >= 2 &&
+                skillDataBuffer[0] == 0xE2 && skillDataBuffer[1] == 0xB0)
+            {
                 // define hash tables
                 byte[] HashTable1 = new byte[]{
                     0x07, 0x83, 0xBC, 0xEE, 0x4B, 0x79, 0x19, 0xB6, 0x2A, 0x53, 0x4F, 0x3A, 0xCF, 0x71, 0xE5, 0x3C,
@@ -270,19 +271,19 @@ namespace Pk2ReaderAPI.Files
                     0x9D, 0x5D, 0x57, 0xAD, 0xD4, 0xC6, 0x40, 0x93, 0x8D, 0xE9, 0xD3, 0x35, 0x9D, 0xC6, 0xD3, 0x00
                 };
                 uint key = 0x8C1F;
-                byte[] bufferDecoded = new byte[buffer.Length];
+                byte[] bufferDecoded = new byte[skillDataBuffer.Length];
 
                 // Decoding
                 byte buff;
-                for (int i = 0; i < buffer.Length; i++)
+                for (int i = 0; i < skillDataBuffer.Length; i++)
                 {
                     buff = (byte)(HashTable1[key % 0xA7] - HashTable2[key % 0x1Ef]);
                     key++;
-                    bufferDecoded[i] = (byte)(buffer[i] + buff);
+                    bufferDecoded[i] = (byte)(skillDataBuffer[i] + buff);
                 }
                 return bufferDecoded;
             }
-            return buffer;
+            return skillDataBuffer;
         }
         #endregion
     }

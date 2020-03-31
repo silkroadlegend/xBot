@@ -20,7 +20,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <!-- Header -->
-            <Grid MouseDown="AnyControl_DragWindow"
+            <Grid MouseDown="Control_MouseDown_DragWindow"
                   Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="50"/>
@@ -208,7 +208,8 @@
                      Height="100" VerticalAlignment="Bottom" Margin="119,0,6,6"
                      Text="{Binding TextLogged}"
                      VerticalScrollBarVisibility="Auto"
-                     IsReadOnly="True">
+                     IsReadOnly="True"
+                     TextChanged="TextBox_TextChanged_AutoScroll">
             </TextBox>
             <!-- Logger (Micro) -->
             <TextBlock Grid.Row="2"

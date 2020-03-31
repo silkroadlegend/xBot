@@ -93,6 +93,7 @@
     <Compile Include="SilkroadSecurityAPI\TransferBuffer.cs" />
     <Compile Include="SilkroadSecurityAPI\Utility.cs" />
     <Compile Include="Data\SQLDatabase.cs" />
+    <Compile Include="Utility\TaskHelpers.cs" />
     <Compile Include="Utility\DateTimeHelpers.cs" />
     <Compile Include="Utility\ExpressionHelpers.cs" />
     <Compile Include="Utility\StreamReaderHelpers.cs" />

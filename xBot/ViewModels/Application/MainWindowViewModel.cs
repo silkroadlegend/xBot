@@ -157,14 +157,16 @@ namespace xBot
         public void AddSilkroad()
         {
             // Build dialog to search the Media.pk2 path
-            OpenFileDialog fileDialog = new OpenFileDialog();
-            fileDialog.Multiselect = false;
-            fileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
-            fileDialog.ValidateNames = true;
-            fileDialog.Title = "Select your \"Media.pk2\" file";
-            fileDialog.FileName = "Media.pk2";
-            fileDialog.Filter = "Media.pk2|media.pk2|pk2 files (*.pk2)|*.pk2|All files (*.*)|*.*";
-            fileDialog.FilterIndex = 0;
+            OpenFileDialog fileDialog = new OpenFileDialog
+            {
+                Multiselect = false,
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer),
+                ValidateNames = true,
+                Title = "Select your \"Media.pk2\" file",
+                FileName = "Media.pk2",
+                Filter = "Media.pk2|media.pk2|pk2 files (*.pk2)|*.pk2|All files (*.*)|*.*",
+                FilterIndex = 0
+            };
             // Confirm that the file has been selected
             if (fileDialog.ShowDialog() != true)
                 return;
@@ -176,15 +178,14 @@ namespace xBot
             };
             // Creates the viewmodel that will handle all the process
             Pk2ExtractorViewModel extractorWindowVM = new Pk2ExtractorViewModel(extractorWindow, fileDialog.FileName);
-            // Set the view to continue with the reference
+            // Set the viewmodel
             extractorWindow.DataContext = extractorWindowVM;
             
             // Confirm that pk2 has been closed/extracted successfully
-            if (extractorWindow.ShowDialog() != true) {
+            if (extractorWindow.ShowDialog() != true)
                 return;
-            }
 
-            WriteLine("Silkroad Server [" + extractorWindowVM.SilkroadName+"] has been added correctly");
+            WriteLine("Silkroad Server [" + extractorWindowVM.SilkroadName+"] has been added");
         }
         #endregion
     }

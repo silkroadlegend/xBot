@@ -18,7 +18,6 @@ namespace Pk2ReaderAPI.Formats
         /// <param name="ddjStream">The stream which contains the DDJ file</param>
         public JMXVDDJ(Stream ddjStream)
         {
-            ddjStream.Seek(0, SeekOrigin.Begin);
             using (BinaryReader reader = new BinaryReader(ddjStream))
             {
                 ReadFormat(reader);
