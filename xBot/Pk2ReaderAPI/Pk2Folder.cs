@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-namespace PK2ReaderAPI
+namespace Pk2ReaderAPI
 {
 	public class Pk2Folder
 	{

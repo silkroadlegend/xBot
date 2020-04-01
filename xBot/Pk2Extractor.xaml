@@ -201,6 +201,17 @@
                                                   SelectedItem="{Binding SilkroadFilesType}">
                                         </ComboBox>
                                     </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Content="Icons "
+                                                  IsChecked="{Binding ExtractIcons}"/>
+                                        <CheckBox Content="Minimap "
+                                                  Grid.Column="1" Margin="3,0,0,0"
+                                                  IsChecked="{Binding ExtractMinimap}"/>
+                                    </Grid>
                                     <!-- Connection -->
                                     <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
                                     <Grid>

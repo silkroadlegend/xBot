@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-namespace xBot.Pk2ReaderAPI.Formats
+namespace Pk2ReaderAPI.Files
 {
     /// <summary>
     /// Helper class having all necessary to handle SkillData files

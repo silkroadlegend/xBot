@@ -1,4 +1,4 @@
-﻿namespace PK2ReaderAPI
+﻿namespace Pk2ReaderAPI
 {
 	public class Pk2File
 	{
@@ -11,7 +11,7 @@
 		/// </summary>
         public string GetExtension()
         {
-            int offset = Name.LastIndexOf('.');
+            int offset = Name.LastIndexOf('.') + 1;
             return Name.Substring(offset);
         }
     }

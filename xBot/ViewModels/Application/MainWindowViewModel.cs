@@ -71,7 +71,7 @@ namespace xBot
         {
             get {
                 // Get the version
-                string assemblyVersion = "v" + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 // Return first three digits
                 return assemblyVersion.Remove(assemblyVersion.LastIndexOf("."));
             }
@@ -121,7 +121,7 @@ namespace xBot
             m_Window = Window;
 
             // Set version as noticeable title on starting
-            Title = Version;
+            Title = "v"+Version;
 
             // Add the first line in the logger
             m_TextLogged = string.Format("{0} Welcome to {1} v{2} | Created by Engels \"JellyBitz\" Quintero" +

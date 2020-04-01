@@ -1,4 +1,6 @@
-﻿using PK2ReaderAPI;
+﻿using Pk2ReaderAPI;
+using Pk2ReaderAPI.Formats;
+using Pk2ReaderAPI.Files;
 using SilkroadSecurityAPI;
 using System;
 using System.Collections.Generic;
@@ -9,8 +11,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using xBot.Data;
-using xBot.Pk2ReaderAPI.Formats;
 using xBot.Utility;
+using System.Drawing.Imaging;
+
 namespace xBot
 {
     public class Pk2ExtractorViewModel : BaseViewModel
@@ -93,6 +96,14 @@ namespace xBot
             m_TeleportDataPath = "server_dep/silkroad/textdata/TeleportData.txt",
             m_TeleportBuildingPath = "server_dep/silkroad/textdata/TeleportBuilding.txt",
             m_TeleportLinkPath = "server_dep/silkroad/textdata/TeleportLink.txt";
+        /// <summary>
+        /// Flag indicating if the icons images will be extracted
+        /// </summary>
+        private bool m_ExtractIcons = true;
+        /// <summary>
+        /// Flag indicating if the minimap images will be extracted
+        /// </summary>
+        private bool m_ExtractMinimap = true;
         #endregion
 
         #region Private Local references used to extract the Pk2 easier
@@ -578,6 +589,34 @@ namespace xBot
                 OnPropertyChanged(nameof(TeleportLinkPath));
             }
         }
+        /// <summary>
+        /// Flag indicating if the icon images will be extracted if not exists
+        /// </summary>
+        public bool ExtractIcons
+        {
+            get { return m_ExtractIcons; }
+            set
+            {
+                // set new value
+                m_ExtractIcons = value;
+                // notify event
+                OnPropertyChanged(nameof(ExtractIcons));
+            }
+        }
+        /// <summary>
+        /// Flag indicating if the minimap folder will be extracted if not exists
+        /// </summary>
+        public bool ExtractMinimap
+        {
+            get { return m_ExtractMinimap; }
+            set
+            {
+                // set new value
+                m_ExtractMinimap = value;
+                // notify event
+                OnPropertyChanged(nameof(ExtractMinimap));
+            }
+        }
         #endregion
 
         #region Commands
@@ -694,7 +733,7 @@ namespace xBot
                 #region Database connection
                 // Try to create, and connect to the database
                 db = new SQLDatabase();
-                string dbPath = FileManager.GetDatabasePath(SilkroadID);
+                string dbPath = FileManager.GetDatabaseFile(SilkroadID);
 
                 WriteProcess("Creating database...");
                 if (!await Task.Run(() => db.Create(dbPath)))
@@ -722,10 +761,10 @@ namespace xBot
                 WriteProcess("Extracting server information");
 
                 // Create the table which contains the basic info
-                await db.ExecuteUnsafeQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
+                await db.ExecuteQuickQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
 
                 // Add Silkroad files type
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
+                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
 
                 // Add Locale
                 WriteProcess("Extracting locale...");
@@ -737,7 +776,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
+                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
                 Locale = locale;
 
                 // Add Version
@@ -751,7 +790,7 @@ namespace xBot
                     db.Close();
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
+                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
                 Version = version;
 
                 // Add Division Info
@@ -771,7 +810,7 @@ namespace xBot
                         divs.Add(div.Key + ":" + string.Join(",", div.Value));
                     return string.Join("|", divs);
                 });
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
+                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
                 DivisionInfo = divisionInfoText;
 
                 // Add Gateway port
@@ -784,7 +823,7 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                await db.ExecuteUnsafeQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
+                await db.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
                 Gateport = gateport;
                 #endregion
 
@@ -929,11 +968,38 @@ namespace xBot
                     // Abort the extraction
                     return;
                 }
-                #endregion
-
-                // TO DO: continue the extraction
 
                 WriteLine("Database generated successfully!");
+                #endregion
+
+                #region Extraction: Image & Icons
+                if (ExtractIcons)
+                {
+                    // Extract icons to silkroad folder
+                    WriteLine("Extracting icon images...");
+                    if (!await Task.Run(() => TryExtractIcons(db)))
+                    {
+                        WriteLine("Error extracting icon images");
+                        WriteProcess("Error");
+                        // Abort the extraction
+                        return;
+                    }
+                }
+                if (ExtractMinimap)
+                {
+                    var a = m_Pk2;
+                    // Extract minimap to app folder
+                    WriteLine("Extracting minimap images...");
+                    if (!await Task.Run(() => TryExtractMinimap()))
+                    {
+                        WriteLine("Error extracting minimap images");
+                        WriteProcess("Error");
+                        // Abort the extraction
+                        return;
+                    }
+                }
+                #endregion
+
                 WriteProcess("Ready");
 
                 // Everything has been generated just fine
@@ -1308,7 +1374,7 @@ namespace xBot
                     + "servername VARCHAR(64) UNIQUE,"
                     + "text VARCHAR(256)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
                 
                 // Cache queries
                 db.Begin();
@@ -1347,7 +1413,7 @@ namespace xBot
                     + "servername VARCHAR(64) UNIQUE,"
                     + "name VARCHAR(64)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Data holders
                 string line;
@@ -1433,7 +1499,7 @@ namespace xBot
                     + "level INTEGER,"
                     + "icon VARCHAR(64)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Data holders
                 string line,name;
@@ -1523,7 +1589,7 @@ namespace xBot
                     + "value_max INTEGER,"
                     + "increase BOOLEAN"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init Data holders
                 string line,name;
@@ -1680,7 +1746,7 @@ namespace xBot
                     + "hp INTEGER,"
                     + "level INTEGER"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init Data holders
                 string line;
@@ -1763,7 +1829,7 @@ namespace xBot
                     + "thief INTEGER,"
                     + "hunter INTEGER"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init Data holders
                 string line;
@@ -1829,7 +1895,7 @@ namespace xBot
                     + "weapon_types VARCHAR(12),"
                     + "icon VARCHAR(64)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init Data holders
                 string line,name,desc,type;
@@ -1933,7 +1999,7 @@ namespace xBot
                     + "parameters VARCHAR(256),"
                     + "icon VARCHAR(64)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init Data holders
                 string line,duration;
@@ -2271,7 +2337,7 @@ namespace xBot
                     + "magicparams VARCHAR(256),"
                     + "PRIMARY KEY (character_servername,tab,slot)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Cache queries
                 db.Begin();
@@ -2344,7 +2410,7 @@ namespace xBot
                     +"tid3 INTEGER,"
                     +"tid4 INTEGER"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Init data holders
                 string line;
@@ -2378,7 +2444,7 @@ namespace xBot
                             if (db.GetResult().Count == 0)
                             {
                                 // INSERT
-                                db.Prepare("INSERT INTO buildings (id,servername,name,tid2,tid3,tid4) VALUES(?,?,?,?,?,?,?)");
+                                db.Prepare("INSERT INTO buildings (id,servername,name,tid2,tid3,tid4) VALUES(?,?,?,?,?,?)");
                             }
                             else
                             {
@@ -2460,7 +2526,7 @@ namespace xBot
                     + "destination_y INTEGER,"
                     + "PRIMARY KEY (source_id, destination_id)"
                     + ");";
-                db.ExecuteUnsafeQuery(sql);
+                db.ExecuteQuickQuery(sql);
 
                 // Data holders
                 string sourceName, destinationName, tid1, tid2, tid3, tid4;
@@ -2520,7 +2586,7 @@ namespace xBot
                                 destinationName = result[0]["name"];
 
                             // CHECK IF EXISTS
-                            db.Prepare("SELECT id FROM teleportlinks WHERE source_id=? AND destination_id=?");
+                            db.Prepare("SELECT source_id FROM teleportlinks WHERE source_id=? AND destination_id=?");
                             db.Bind("source_id",data[1]);
                             db.Bind("destination_id",data[2]);
                             db.ExecuteQuery();
@@ -2565,6 +2631,140 @@ namespace xBot
                 return true;
             }
             catch { return false; }
+        }
+        /// <summary>
+        /// Try to extract all icons used by the database previously generated
+        /// </summary>
+        /// <param name="db">The database connection</param>
+        /// <returns>Return success</returns>
+        private bool TryExtractIcons(SQLDatabase db)
+        {
+            try
+            {
+                // The folder path to allocate all icons
+                string folderPath = FileManager.GetSilkroadFolder(SilkroadID);
+
+                // Check tables with icons
+                string[] tables = new string[] {
+                    "items","skills"
+                };
+                foreach(string table in tables)
+                {
+                    WriteProcess("Checking " + table + " icons...");
+
+                    // Get all icon paths
+                    db.ExecuteQuery("SELECT icon FROM "+ table +" GROUP BY icon");
+                    var rows = db.GetResult();
+                    foreach (var row in rows)
+                    {
+                        // Fix icon path
+                        string iconPath = "icon\\" + row["icon"];
+
+                        // Check if the file exists
+                        Pk2File DDJFile = m_Pk2.GetFile(iconPath);
+                        if (DDJFile == null)
+                            continue;
+
+                        // Check path if the file already exists
+                        string saveFilePath = Path.ChangeExtension(Path.GetFullPath(folderPath + iconPath), "png");
+                        if (File.Exists(saveFilePath))
+                            continue;
+
+                        // Check directory if exists
+                        string saveFolderPath = Path.GetDirectoryName(saveFilePath);
+                        if (!Directory.Exists(saveFolderPath))
+                            Directory.CreateDirectory(saveFolderPath);
+
+                        // Display progress
+                        WriteProcess("Creating " + iconPath);
+
+                        // Just in case, avoid wrong formats
+                        try
+                        {
+                            // Read DDJ
+                            JMXVDDJ _JMXVDDJ = new JMXVDDJ(m_Pk2.GetFileStream(DDJFile));
+                            // Save as PNG
+                            _JMXVDDJ.Texture.Save(saveFilePath, System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                        catch { }
+                    }
+                }
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+        /// <summary>
+        /// Try to extract all minimap images
+        /// </summary>
+        /// <returns>Return success</returns>
+        private bool TryExtractMinimap()
+        {
+            try
+            {
+                // Display progress
+                WriteProcess("Checking Worldmap images...");
+                Pk2Folder minimapFolder = m_Pk2.GetFolder("Minimap");
+                // Just in case
+                if (minimapFolder == null)
+                    WriteLine("Error, Worldmap images folder not found");
+                else
+                    ExtractDDJToImages(minimapFolder, FileManager.GetWorldMapFolder(), ImageFormat.Jpeg);
+                
+                // Display progress
+                WriteProcess("Checking Dungeon images...");
+                minimapFolder = m_Pk2.GetFolder("Minimap_d");
+                // Just in case
+                if (minimapFolder == null)
+                    WriteLine("Error, Dungeon images folder not found");
+                else ExtractDDJToImages(minimapFolder, FileManager.GetDungeonMapFolder(), ImageFormat.Jpeg);
+
+                // Success
+                return true;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// Extract all .ddj files to the output folder path converted to images
+        /// </summary>
+        /// <param name="Folder">The Pk2 folder with ddj files</param>
+        /// <param name="OutputPath">Output folder path to allocate the converted images</param>
+        /// <param name="Format">Image format to be converted</param>
+        /// <param name="Culture">Culture used to normalize filenames</param>
+        private void ExtractDDJToImages(Pk2Folder Folder, string OutputPath, ImageFormat Format)
+        {
+            // Set the new image extension
+            string ext = Format == ImageFormat.Jpeg ? "jpg" : Format.ToString().ToLower();
+            // Check all files
+            foreach (Pk2File file in Folder.Files)
+            {
+                // Avoid different extensions
+                if (file.GetExtension().ToUpper() != "DDJ")
+                    continue;
+
+                // Check path if the file already exists
+                string saveFilePath = Path.ChangeExtension(Path.GetFullPath(OutputPath + "\\" + file.Name), ext);
+                if (File.Exists(saveFilePath))
+                    continue;
+
+                // Display progress
+                WriteProcess("Creating " + file.Name);
+
+                // Just in case, avoid wrong formats
+                try
+                {
+                    // Read DDJ
+                    JMXVDDJ _JMXVDDJ = new JMXVDDJ(m_Pk2.GetFileStream(file));
+                    // Save as PNG
+                    _JMXVDDJ.Texture.Save(saveFilePath, Format);
+                }
+                catch { }
+            }
+            // Check sub folders
+            foreach (Pk2Folder folder in Folder.SubFolders)
+                ExtractDDJToImages(folder, OutputPath, Format);
         }
         #endregion
     }

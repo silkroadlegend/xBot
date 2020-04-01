@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace xBot.Pk2ReaderAPI.Formats
+﻿using System.Collections.Generic;
+namespace Pk2ReaderAPI.Files
 {
     /// <summary>
-    /// The shop structure that client uses
+    /// The shop structure that client uses to organize stores
     /// </summary>
     public class Shop
     {

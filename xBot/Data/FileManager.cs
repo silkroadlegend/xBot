@@ -12,65 +12,66 @@ namespace xBot.Data
     /// </summary>
     public static class FileManager
     {
-       /// <summary>
-       /// Get the directory folder path and create it if is necessary.
-       /// </summary>
-       /// <param name="Type">Folder type</param>
-        public static string GetDirectory(DirectoryType Type)
+        /// <summary>
+        /// Get the file path to the database 
+        /// </summary>
+        /// <param name="SilkroadID">ID to identify the silkroad server</param>
+        public static string GetDatabaseFile(string SilkroadID)
         {
-            string path = string.Empty;
+            // Base path
+            string path = "Data\\" + SilkroadID + "\\";
 
-            // Select a valid path
-            switch (Type)
-            {
-                case DirectoryType.Data:
-                    path = "Data";
-                    break;
-                case DirectoryType.Config:
-                    path = "Config";
-                    break;
-                case DirectoryType.Minimap:
-                    path = "Minimap";
-                    break;
-                case DirectoryType.Logs:
-                    path = "Logs";
-                    break;
-            }
+            // Create directory if not exists
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
-            // Create directory if is necessary
+            // Add path to file
+            path += "Database.sqlite3";
+
+            return path;
+        }
+        /// <summary>
+        /// Get the folder path to the icons
+        /// </summary>
+        /// <param name="SilkroadID">ID to identify the silkroad server</param>
+        public static string GetSilkroadFolder(string SilkroadID)
+        {
+            // Base path
+            string path = "Data\\" + SilkroadID+"\\";
+
+            // Create directory if not exists
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
             return path;
         }
         /// <summary>
-        /// Get the database file path
+        /// Get the folder path to the world map images
         /// </summary>
-        /// <param name="Name">Unique name to identify the server</param>
-        public static string GetDatabasePath(string Name)
+        public static string GetWorldMapFolder()
         {
-            // Get the base path
-            string path = GetDirectory(DirectoryType.Data);
+            // Base path
+            string path = "Minimap";
 
-            // Add the directory path which contains the database
-            path += "\\" + Name;
-
-            // Create directory for the if is necessary
+            // Create directory if not exists
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            // Create the full path to database
-            path += "\\Database.sqlite3";
-
             return path;
         }
-
-        public enum DirectoryType : byte
+        /// <summary>
+        /// Get the folder path to the dungeon map images
+        /// </summary>
+        public static string GetDungeonMapFolder()
         {
-            Data,
-            Config,
-            Minimap,
-            Logs
+            // Base path
+            string path = "Minimap\\d";
+
+            // Create directory if not exists
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            return path;
         }
     }
 }

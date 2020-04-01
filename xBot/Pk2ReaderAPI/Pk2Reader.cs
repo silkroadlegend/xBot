@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace PK2ReaderAPI
+namespace Pk2ReaderAPI
 {
 	public class Pk2Reader
 	{
@@ -16,7 +16,10 @@ namespace PK2ReaderAPI
         private Pk2Folder m_RootFolder;
         private Dictionary<string, Pk2Folder> m_Folders = new Dictionary<string, Pk2Folder>();
         private Dictionary<string, Pk2File> m_Files = new Dictionary<string, Pk2File>();
-        private CultureInfo m_EnglishCulture = new CultureInfo("en-US", false);
+        /// <summary>
+        /// Used to normalize the files and folder names without risk
+        /// </summary>
+        private readonly CultureInfo m_EnglishCulture = new CultureInfo("en-US", false);
         #endregion
 
         #region Public Properties
@@ -30,7 +33,7 @@ namespace PK2ReaderAPI
         /// </summary>
         public byte[] Key { get; }
         /// <summary>
-        /// Blowfish key used to initialize the blowfish at string format
+        /// Key used to initialize the blowfish at string format
         /// </summary>
         public string ASCIIKey { get; private set; }
         /// <summary>
@@ -110,7 +113,7 @@ namespace PK2ReaderAPI
             // Get bytes from ascii
             byte[] a_key = Encoding.ASCII.GetBytes(ascii_key);
 
-            // This is the Silkroad bas key used in all versions
+            // This is the Silkroad base key used in all versions
             byte[] b_key = new byte[56];
 
             // Copy key to array to keep the b_key at 56 bytes. b_key has to be bigger than a_key
@@ -129,47 +132,54 @@ namespace PK2ReaderAPI
         /// <summary>
         /// Reads Pk2 block structure from the position specified and save all data into the Folder
         /// </summary>
-        private void Read(long Position, Pk2Folder CurrentFolder, string ParentPath)
+        private void Read(long Position,Pk2Folder CurrentFolder, string ParentPath)
 		{
             // Set cursor position in the stream
 			BinaryReader reader = new BinaryReader(m_FileStream);
 			reader.BaseStream.Position = Position;
-            
-            // Init folders
-			List<Pk2Folder> folders = new List<Pk2Folder>();
 
-            // Reads pk2 block
+            // Keep a list with all folders from this block to add it to subfolders
+            List<Pk2Folder> subfolders = new List<Pk2Folder>();
+
+            // Read pk2 block
             sPk2EntryBlock entryBlock = (sPk2EntryBlock)BufferToStruct(m_Blowfish.Decode(reader.ReadBytes(Marshal.SizeOf(typeof(sPk2EntryBlock)))), typeof(sPk2EntryBlock));
 			for (int i = 0; i < 20; i++)
 			{
-				sPk2Entry entry = entryBlock.Entries[i]; // Entry
+                // Entry
+                sPk2Entry entry = entryBlock.Entries[i];
 
                 // Check entry type
 				switch (entry.Type)
-				{
-					case 0: // Null Entry
+                {
+                    // Null Entry
+                    case 0:
 						break;
-					case 1: // Folder
+                    // Folder
+                    case 1:
                         // Check if is not a parent/root folder
 						if (entry.Name != "." && entry.Name != "..")
 						{
-							Pk2Folder folder = new Pk2Folder();
-							folder.Name = entry.Name;
-							folder.Position = BitConverter.ToInt64(entry.g_Position, 0);
-							folders.Add(folder);
-                            // Add subfolders to the current folder
-                            CurrentFolder.SubFolders.Add(folder);
+                            Pk2Folder folder = new Pk2Folder()
+                            {
+                                Name = entry.Name,
+                                Position = BitConverter.ToInt64(entry.g_Position, 0)
+                            };
+                            // Add subfolder
+                            subfolders.Add(folder);
 
                             // Save dictionary reference
                             m_Folders[ParentPath + entry.Name.ToUpper(m_EnglishCulture)] = folder;
                         }
 						break;
-					case 2: // File
-						Pk2File file = new Pk2File();
-						file.Position = entry.Position;
-						file.Name = entry.Name;
-						file.Size = entry.Size;
-						file.ParentFolder = CurrentFolder;
+                    // File
+                    case 2:
+                        Pk2File file = new Pk2File
+                        {
+                            Position = entry.Position,
+                            Name = entry.Name,
+                            Size = entry.Size,
+                            ParentFolder = CurrentFolder
+                        };
                         // Add files to the current folder
                         CurrentFolder.Files.Add(file);
 
@@ -180,14 +190,14 @@ namespace PK2ReaderAPI
 			}
             // Read the next pk2 block chain
 			if (entryBlock.Entries[19].NextChain != 0)
-			{
-				Read(entryBlock.Entries[19].NextChain, CurrentFolder, ParentPath);
-            }
+				Read(entryBlock.Entries[19].NextChain,CurrentFolder, ParentPath);
+            
+            // Add subfolders to the current folder
+            CurrentFolder.SubFolders.AddRange(subfolders);
+
             // Continue reading folder by folder
-            foreach (Pk2Folder folder in folders)
-			{
-                Read(folder.Position, folder, ParentPath + folder.Name.ToUpper(m_EnglishCulture) + "\\");
-			}
+            foreach(var f in subfolders)
+                Read(f.Position,f, ParentPath + f.Name.ToUpper(m_EnglishCulture) + "\\");
 		}
         #endregion
 

@@ -8,7 +8,7 @@ using System.Windows;
 // conjunto de atributos. Cambie estos valores de atributo para modificar la información
 // asociada con un ensamblado.
 [assembly: AssemblyTitle("xBot")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Silkroad Online Bot (vSRO 1.188)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("xBot")]
@@ -48,3 +48,5 @@ using System.Windows;
 // - Any change done, bugfix or not
 [assembly: AssemblyVersion("0.0.1")]
 [assembly: AssemblyFileVersion("0.0.1")]
+// Global CultureInfo to avoid Exceptions like ToUpper() on turkish OS and others
+[assembly: NeutralResourcesLanguage("en-US")]
