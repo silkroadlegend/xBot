@@ -240,6 +240,16 @@ namespace xBot
             for (int i = 0; i < Settings.Silkroads.Count; i++)
                 if (Settings.Silkroads[i].ID == extractorWindowVM.Silkroad.ID)
                     Settings.Silkroads.RemoveAt(i--);
+            // Fix duplicated names, just in case!
+            for (int i = 0; i < Settings.Silkroads.Count; i++)
+            {
+                if (Settings.Silkroads[i].Name == extractorWindowVM.Silkroad.Name)
+                {
+                    extractorWindowVM.Silkroad.Name += "*";
+                    i = 0;
+                }
+            }
+
 
             // Added Successfully
             Settings.Silkroads.Add(extractorWindowVM.Silkroad);
@@ -286,9 +296,18 @@ namespace xBot
                 // Show extractor dialog
                 extractorWindow.ShowDialog();
 
+                // Fix duplicated names, just in case!
+                for (int i = 0; i < Settings.Silkroads.Count; i++)
+                {
+                    if (Settings.Silkroads[i].Name == setup.Name)
+                    {
+                        setup.Name += "*";
+                        i = 0;
+                    }
+                }
+
                 // Override the changes no matter what
-                setup = extractorWindowVM.Silkroad;
-                Settings.Save();
+                Settings.SaveAsync();
                 WriteLine("Silkroad Server [" + setup.Name + "] has been updated");
             }
         }

@@ -81,7 +81,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Data\FileManager.cs" />
-    <Compile Include="Data\SilkroadFilesType.cs" />
+    <Compile Include="Silkroad\FilesType.cs" />
     <Compile Include="Pk2Extractor.xaml.cs">
       <DependentUpon>Pk2Extractor.xaml</DependentUpon>
     </Compile>

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using xBot.Data;
+using Silkroad;
 using xBot.Utility;
 using System.Drawing.Imaging;
 using System.Threading;
@@ -130,7 +131,7 @@ namespace xBot
         /// <summary>
         /// All silkroad files supported
         /// </summary>
-        public SilkroadFilesType[] SilkroadFilesTypes { get; }
+        public FilesType[] SilkroadFilesTypes { get; }
         /// <summary>
         /// Silkroad server setup with the information extracted
         /// </summary>
@@ -213,7 +214,7 @@ namespace xBot
             m_ExtractionCancelToken = new CancellationTokenSource();
 
             // Set all file types supported
-            SilkroadFilesTypes = new SilkroadFilesType[] { SilkroadFilesType.vSRO_1188 };
+            SilkroadFilesTypes = new FilesType[] { FilesType.vSRO_1188 };
 
             // Load or craete the Silkroad info
             if (Silkroad == null)
@@ -221,7 +222,7 @@ namespace xBot
                 DirectoryInfo folder = new DirectoryInfo(FolderPath);
                 this.Silkroad = new SilkroadSetupViewModel(folder.FullName, folder.FullName.ToMD5Hash())
                 {
-                    SilkroadFilesType = SilkroadFilesType.vSRO_1188 // vSRO as default
+                    FilesType = FilesType.vSRO_1188 // vSRO as default
                 };
             }
             else
@@ -353,7 +354,7 @@ namespace xBot
             await m_Database.ExecuteQuickQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
 
             // Add Silkroad files type
-            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + Silkroad.SilkroadFilesType + "')");
+            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + Silkroad.FilesType + "')");
 
             // Add Locale
             WriteProcess("Extracting locale...");

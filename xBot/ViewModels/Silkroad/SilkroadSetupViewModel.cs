@@ -1,6 +1,5 @@
 ﻿using System.IO;
-using xBot.Data;
-using xBot.Utility;
+using Silkroad;
 
 namespace xBot
 {
@@ -14,7 +13,7 @@ namespace xBot
         /// <summary>
         /// The server file type
         /// </summary>
-        private SilkroadFilesType m_SilkroadFilesType;
+        private FilesType m_FilesType;
         /// <summary>
         /// Path to the launcher executable
         /// </summary>
@@ -99,17 +98,17 @@ namespace xBot
             }
         }
         /// <summary>
-        /// The choosen type of server, this can change the behavior on the files and extraction
+        /// The choosen type of server, this can change the behavior of the files extraction
         /// </summary>
-        public SilkroadFilesType SilkroadFilesType
+        public FilesType FilesType
         {
-            get { return m_SilkroadFilesType; }
+            get { return m_FilesType; }
             set
             {
                 // set new value
-                m_SilkroadFilesType = value;
+                m_FilesType = value;
                 // notify event
-                OnPropertyChanged(nameof(SilkroadFilesType));
+                OnPropertyChanged(nameof(FilesType));
             }
         }
         /// <summary>
