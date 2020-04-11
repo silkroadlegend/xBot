@@ -141,16 +141,17 @@
 
                                         <!-- Silkroad servers info -->
                                         <ListView x:Name="Settings_lvwSilkroads"
-                                                  Margin="6,6,6,0">
+                                                  Margin="6,6,6,0"
+                                                  ItemsSource="{Binding Settings.Silkroads}">
                                             <ListView.View>
                                                 <!-- Display a few properties -->
                                                 <GridView>
                                                     <GridViewColumn Header="ID" Width="30" DisplayMemberBinding="{Binding ID}"/>
-                                                    <GridViewColumn Header="Name" Width="140" DisplayMemberBinding="{Binding Name}"/>
-                                                    <GridViewColumn Header="Type" Width="60" DisplayMemberBinding="{Binding Type}"/>
-                                                    <GridViewColumn Header="Version" Width="90" DisplayMemberBinding="{Binding Version}"/>
-                                                    <GridViewColumn Header="Host(s)" Width="240" DisplayMemberBinding="{Binding Hosts}"/>
-                                                    <GridViewColumn Header="Port" Width="70" DisplayMemberBinding="{Binding Port}"/>
+                                                    <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}"/>
+                                                    <GridViewColumn Header="Type" Width="80" DisplayMemberBinding="{Binding SilkroadFilesType}"/>
+                                                    <GridViewColumn Header="Version" Width="60" DisplayMemberBinding="{Binding Version}"/>
+                                                    <GridViewColumn Header="Divisions" Width="250" DisplayMemberBinding="{Binding DivisionInfo}"/>
+                                                    <GridViewColumn Header="Port" Width="60" DisplayMemberBinding="{Binding Gateport}"/>
                                                 </GridView>
                                             </ListView.View>
                                         </ListView>
@@ -158,28 +159,31 @@
                                         <!-- Actions buttons -->
                                         <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30*"/>
-                                                <ColumnDefinition Width="60*"/>
-                                                <ColumnDefinition Width="10*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
                                                 <Button Margin="6,0"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         Command="{Binding CommandAddSilkroad}">
-                                                    <TextBlock Text="Add"
-                                                                   Margin="3,0"/>
+                                                    <TextBlock Text="Add" Margin="3,0"/>
                                                 </Button>
                                                 <Button Margin="6,0"
                                                         HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center">
-                                                    <TextBlock Text="Remove"
-                                                                   Margin="3,0"/>
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding CommandRemoveSilkroad}"
+                                                        CommandParameter="{Binding ElementName=Settings_lvwSilkroads, Path=SelectedItem}">
+                                                    <TextBlock Text="Remove" Margin="3,0"/>
                                                 </Button>
                                             </StackPanel>
                                             <Button Grid.Column="2"
+                                                    Margin="6,0"
                                                     HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center">
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding CommandUpdateSilkroad}"
+                                                    CommandParameter="{Binding ElementName=Settings_lvwSilkroads, Path=SelectedItem}">
                                                 <TextBlock Text="Update" 
                                                            Margin="3,0"/>
                                             </Button>
@@ -204,19 +208,16 @@
             </TabControl>
 
             <!-- Logger (Macro) -->
-            <TextBox Grid.Row="1"
-                     Height="100" VerticalAlignment="Bottom" Margin="119,0,6,6"
+            <TextBox Grid.Row="1" Height="100"  VerticalAlignment="Bottom" Margin="119,0,6,6"
                      Text="{Binding TextLogged}"
-                     VerticalScrollBarVisibility="Auto"
                      IsReadOnly="True"
-                     TextChanged="TextBox_TextChanged_AutoScroll">
-            </TextBox>
+                     VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.ScrollChanged="ScrollViewer_ScrollChanged_AutoScroll"
+                     TextChanged="TextBox_TextChanged_AutoScroll"/>
             <!-- Logger (Micro) -->
-            <TextBlock Grid.Row="2"
-                       Padding="3,1"
+            <TextBlock Grid.Row="2" Padding="3,1"
                        Background="{StaticResource HighlightMainBrush}"
-                       Text="Created by JellyBitz">
-            </TextBlock>
+                       Text="{Binding ProcessLogged}"/>
         </Grid>
     </Border>
 </Window>

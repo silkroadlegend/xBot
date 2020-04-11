@@ -1,5 +1,6 @@
-﻿using Microsoft.Win32;
+﻿using Ookii.Dialogs.Wpf;
 using System;
+using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
@@ -19,6 +20,10 @@ namespace xBot
         /// </summary>
         private string m_TextLogged;
         /// <summary>
+        /// The process logged in the application
+        /// </summary>
+        private string m_ProcessLogged = "Ready";
+        /// <summary>
         /// The title of the application
         /// </summary>
         private string m_Title;
@@ -36,11 +41,14 @@ namespace xBot
         /// <summary>
         /// Title of the application
         /// </summary>
-        public string Title {
-            get {
+        public string Title
+        {
+            get
+            {
                 return m_Title;
             }
-            set {
+            set
+            {
                 m_Title = value;
                 // notify event
                 OnPropertyChanged(nameof(Title));
@@ -54,7 +62,8 @@ namespace xBot
         /// </summary>
         public string FullTitle
         {
-            get {
+            get
+            {
                 return m_FullTitle;
             }
             set
@@ -69,7 +78,8 @@ namespace xBot
         /// </summary>
         public string Version
         {
-            get {
+            get
+            {
                 // Get the version
                 string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 // Return first three digits
@@ -90,6 +100,26 @@ namespace xBot
                 OnPropertyChanged(nameof(TextLogged));
             }
         }
+        /// <summary>
+        /// Process logged being executed by the application
+        /// </summary>
+        public string ProcessLogged
+        {
+            get { return m_ProcessLogged; }
+            set
+            {
+                if (m_ProcessLogged == value)
+                    return;
+                // set new value
+                m_ProcessLogged = value;
+                // notify event
+                OnPropertyChanged(nameof(ProcessLogged));
+            }
+        }
+        /// <summary>
+        /// Application general settings
+        /// </summary>
+        public ApplicationSettingsViewModel Settings { get; private set; }
         #endregion
 
         #region Commands
@@ -109,6 +139,14 @@ namespace xBot
         /// Add silkroad server information
         /// </summary>
         public ICommand CommandAddSilkroad { get; set; }
+        /// <summary>
+        /// Removes a silkroad server information
+        /// </summary>
+        public ICommand CommandRemoveSilkroad { get; set; }
+        /// <summary>
+        /// Updates a silkroad server information
+        /// </summary>
+        public ICommand CommandUpdateSilkroad { get; set; }
         #endregion
 
         #region Constructor
@@ -121,22 +159,28 @@ namespace xBot
             m_Window = Window;
 
             // Set version as noticeable title on starting
-            Title = "v"+Version;
+            Title = "v" + Version;
 
             // Add the first line in the logger
             m_TextLogged = string.Format("{0} Welcome to {1} v{2} | Created by Engels \"JellyBitz\" Quintero" +
                 Environment.NewLine + "{0} Discord : JellyBitz#7643 | FaceBook : @ImJellyBitz",
                DateTime.Now.ToShortFormat(), AppName, Version);
 
+            // Load settings file
+            InitializeSettings("xBot.Settings.json");
+
             // Commands setup
             CommandMinimize = new RelayCommand(() => m_Window.WindowState = WindowState.Minimized);
-            CommandRestore = new RelayCommand(()=> {
+            CommandRestore = new RelayCommand(() =>
+            {
                 // Check the WindowState and change it
                 m_Window.WindowState = m_Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
             });
             CommandClose = new RelayCommand(m_Window.Close);
 
             CommandAddSilkroad = new RelayCommand(AddSilkroad);
+            CommandRemoveSilkroad = new RelayParameterizedCommand(RemoveSilkroad);
+            CommandUpdateSilkroad = new RelayParameterizedCommand(UpdateSilkroad);
         }
         #endregion
 
@@ -145,8 +189,17 @@ namespace xBot
         /// Writes an newline with the value provided to the application logger
         /// </summary>
         /// <param name="Value">The text to be logged</param>
-        public void WriteLine(string Value){
+        public void WriteLine(string Value)
+        {
             this.TextLogged += Environment.NewLine + DateTime.Now.ToShortFormat() + " " + Value;
+        }
+        /// <summary>
+        /// Writes a process description to the application process logger
+        /// </summary>
+        /// <param name="Value">The text to be logged</param>
+        public void WriteProcess(string Value)
+        {
+            this.ProcessLogged = Value;
         }
         #endregion
 
@@ -154,38 +207,119 @@ namespace xBot
         /// <summary>
         /// Add silkroad server information
         /// </summary>
-        public void AddSilkroad()
+        private void AddSilkroad()
         {
-            // Build dialog to search the Media.pk2 path
-            OpenFileDialog fileDialog = new OpenFileDialog
+            // Build dialog to search the Silkroad path
+            VistaFolderBrowserDialog folderBrowser = new VistaFolderBrowserDialog
             {
-                Multiselect = false,
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer),
-                ValidateNames = true,
-                Title = "Select your \"Media.pk2\" file",
-                FileName = "Media.pk2",
-                Filter = "Media.pk2|media.pk2|pk2 files (*.pk2)|*.pk2|All files (*.*)|*.*",
-                FilterIndex = 0
+                Description = "Please, select your Silkroad Online folder",
+                RootFolder = Environment.SpecialFolder.MyComputer,
+                UseDescriptionForTitle = true
             };
-            // Confirm that the file has been selected
-            if (fileDialog.ShowDialog() != true)
+
+            // Confirm that the folder has been selected
+            if (folderBrowser.ShowDialog() != true)
                 return;
 
             // Prepares the extractor to be shown as dialog
-            Pk2Extractor extractorWindow = new Pk2Extractor {
+            Pk2Extractor extractorWindow = new Pk2Extractor
+            {
                 // Set parent to lock it as dialog
                 Owner = m_Window
             };
             // Creates the viewmodel that will handle all the process
-            Pk2ExtractorViewModel extractorWindowVM = new Pk2ExtractorViewModel(extractorWindow, fileDialog.FileName);
+            Pk2ExtractorViewModel extractorWindowVM = new Pk2ExtractorViewModel(extractorWindow, folderBrowser.SelectedPath);
             // Set the viewmodel
             extractorWindow.DataContext = extractorWindowVM;
-            
+
             // Confirm that pk2 has been closed/extracted successfully
             if (extractorWindow.ShowDialog() != true)
                 return;
 
-            WriteLine("Silkroad Server [" + extractorWindowVM.SilkroadName+"] has been added");
+            // Remove duplicates, just in case!
+            for (int i = 0; i < Settings.Silkroads.Count; i++)
+                if (Settings.Silkroads[i].ID == extractorWindowVM.Silkroad.ID)
+                    Settings.Silkroads.RemoveAt(i--);
+
+            // Added Successfully
+            Settings.Silkroads.Add(extractorWindowVM.Silkroad);
+            Settings.Save();
+            WriteLine("Silkroad Server [" + extractorWindowVM.Silkroad.Name + "] has been added");
+        }
+        /// <summary>
+        /// Remove a silkroad server information
+        /// </summary>
+        /// <param name="Silkroad">Silkroad selected : <see cref="SilkroadSetupViewModel"/></param>
+        private void RemoveSilkroad(object SelectedSilkroad)
+        {
+            // Make sure it's selected
+            if(SelectedSilkroad != null)
+            {
+                var setup = (SilkroadSetupViewModel)SelectedSilkroad;
+                Settings.Silkroads.Remove(setup);
+                Settings.Save();
+                WriteLine("Silkroad Server [" + setup.Name + "] has been removed");
+            }
+        }
+        /// <summary>
+        /// Updates the silkroad server information from selected one
+        /// </summary>
+        /// <param name="Silkroad">Silkroad selected : <see cref="SilkroadSetupViewModel"/></param>
+        private void UpdateSilkroad(object SelectedSilkroad)
+        {
+            // Make sure it's selected
+            if (SelectedSilkroad != null)
+            {
+                var setup = (SilkroadSetupViewModel)SelectedSilkroad;
+                
+                // Prepares the extractor to be shown as dialog
+                Pk2Extractor extractorWindow = new Pk2Extractor
+                {
+                    // Set parent to lock it as dialog
+                    Owner = m_Window
+                };
+                // Creates the viewmodel that will handle all the process
+                Pk2ExtractorViewModel extractorWindowVM = new Pk2ExtractorViewModel(extractorWindow, setup.Path, setup);
+                // Set the viewmodel
+                extractorWindow.DataContext = extractorWindowVM;
+
+                // Show extractor dialog
+                extractorWindow.ShowDialog();
+
+                // Override the changes no matter what
+                setup = extractorWindowVM.Silkroad;
+                Settings.Save();
+                WriteLine("Silkroad Server [" + setup.Name + "] has been updated");
+            }
+        }
+        #endregion
+
+        #region Private Helpers
+        /// <summary>
+        /// Load or creates the application settings
+        /// </summary>
+        private void InitializeSettings(string ConfigPath)
+        {
+            // Temporally
+            var settings = new ApplicationSettingsViewModel(ConfigPath);
+
+            // Try load
+            if (!settings.Load())
+            {
+                // Try to keep a backup if possible
+                if(File.Exists(ConfigPath))
+                {
+                    try {
+                        File.Move(ConfigPath, ConfigPath + "." + DateTime.Now.ToString("dd-mm-yyyy.HH-mm") + ".bkp");
+                    } catch { }
+                }
+                // Create a clean config
+                settings.Save();
+                WriteLine("New settings has been created");
+            }
+
+            // Set app settings
+            Settings = settings;
         }
         #endregion
     }

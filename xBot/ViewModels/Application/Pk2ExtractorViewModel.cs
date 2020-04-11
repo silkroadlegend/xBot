@@ -29,10 +29,6 @@ namespace xBot
         /// </summary>
         CancellationTokenSource m_ExtractionCancelToken;
         /// <summary>
-        /// The full path to the Pk2 file
-        /// </summary>
-        private string m_FullPath;
-        /// <summary>
         /// The text logged in the application
         /// </summary>
         private string m_TextLogged;
@@ -41,66 +37,13 @@ namespace xBot
         /// </summary>
         private string m_ProcessLogged = "Ready";
         /// <summary>
-        /// The name identification to the given silkroad server
-        /// </summary>
-        private string m_SilkroadName;
-        /// <summary>
         /// Flag indicating if the <see cref="CommandStartExtraction"/> is running
         /// </summary>
         private bool m_IsExtracting;
         /// <summary>
-        /// The client version found into the Pk2
+        /// Silkroad server setup with the information extracted
         /// </summary>
-        private uint m_Version;
-        /// <summary>
-        /// The locale type found into the Pk2
-        /// </summary>
-        private byte m_Locale;
-        /// <summary>
-        /// The locale type found into the Pk2
-        /// </summary>
-        private string m_DivisionInfo;
-        /// <summary>
-        /// The connection port found into the Pk2
-        /// </summary>
-        private ushort m_Gateport;
-        #endregion
-
-        #region Private Advanced Properties
-        /// <summary>
-        /// Blowfish key used to decrypt the Pk2 file
-        /// </summary>
-        private string m_BlowfishKey = "169841";
-        /// <summary>
-        /// The server file type choosen
-        /// </summary>
-        private SilkroadFilesType m_SilkroadFilesType;
-        /// <summary>
-        /// Pk2 Path to the file
-        /// </summary>
-        private string
-            m_VersionPath = "SV.T",
-            m_DivisionInfoPath = "DivisionInfo.txt",
-            m_GateportPath = "Gateport.txt",
-            m_TypePath = "Type.txt",
-            m_TextDataNamePointerPath = "server_dep/silkroad/textdata/TextDataName.txt",
-            m_TextUISystemPath = "server_dep/silkroad/textdata/TextUISystem.txt",
-            m_TextZoneNamePath = "server_dep/silkroad/textdata/TextZoneName.txt",
-            m_ItemDataPointerPath = "server_dep/silkroad/textdata/ItemData.txt",
-            m_MagicOptionPath = "server_dep/silkroad/textdata/MagicOption.txt",
-            m_CharacterDataPointerPath = "server_dep/silkroad/textdata/CharacterData.txt",
-            m_LevelDataPath = "server_dep/silkroad/textdata/LevelData.txt",
-            m_SkillMasteryDataPath = "server_dep/silkroad/textdata/SkillMasteryData.txt",
-            m_SkillDataPointerPath = "server_dep/silkroad/textdata/SkillDataEnc.txt",
-            m_refShopGroupPath = "server_dep/silkroad/textdata/refShopGroup.txt",
-            m_refMappingShopGroupPath = "server_dep/silkroad/textdata/refMappingShopGroup.txt",
-            m_refMappingShopWithTabPath = "server_dep/silkroad/textdata/refMappingShopWithTab.txt",
-            m_refShopTabPath = "server_dep/silkroad/textdata/refShopTab.txt",
-            m_refScrapOfPackageItemPath = "server_dep/silkroad/textdata/refScrapOfPackageItem.txt",
-            m_refShopGoodsPath = "server_dep/silkroad/textdata/refShopGoods.txt",
-            m_TeleportDataPath = "server_dep/silkroad/textdata/TeleportData.txt",
-            m_TeleportBuildingPath = "server_dep/silkroad/textdata/TeleportBuilding.txt",
-            m_TeleportLinkPath = "server_dep/silkroad/textdata/TeleportLink.txt";
+        private SilkroadSetupViewModel m_Silkroad;
         /// <summary>
         /// Flag indicating if the icons images will be extracted
         /// </summary>
@@ -168,29 +111,13 @@ namespace xBot
             }
         }
         /// <summary>
-        /// Silkroad unique ID to identify the server
-        /// </summary>
-        public string SilkroadID { get; }
-        /// <summary>
-        /// Prefered Silkroad name to identify the server
-        /// </summary>
-        public string SilkroadName
-        {
-            get { return m_SilkroadName; }
-            set
-            {
-                // set new value
-                m_SilkroadName = value;
-                // notify event
-                OnPropertyChanged(nameof(SilkroadName));
-            }
-        }
-        /// <summary>
         /// Check if the database is being extracted
         /// </summary>
-        public bool IsExtracting {
+        public bool IsExtracting
+        {
             get { return m_IsExtracting; }
-            set {
+            set
+            {
                 // Avoid re-notify event 
                 if (m_IsExtracting == value)
                     return;
@@ -201,401 +128,21 @@ namespace xBot
             }
         }
         /// <summary>
-        /// Version used by the client
+        /// All silkroad files supported
         /// </summary>
-        public uint Version {
-            get { return m_Version; }
+        public SilkroadFilesType[] SilkroadFilesTypes { get; }
+        /// <summary>
+        /// Silkroad server setup with the information extracted
+        /// </summary>
+        public SilkroadSetupViewModel Silkroad
+        {
+            get { return m_Silkroad; }
             set
             {
                 // set new value
-                m_Version = value;
+                m_Silkroad = value;
                 // notify event
-                OnPropertyChanged(nameof(Version));
-            }
-        }
-        /// <summary>
-        /// Localization used by the client
-        /// </summary>
-        public byte Locale
-        {
-            get { return m_Locale; }
-            set
-            {
-                // set new value
-                m_Locale = value;
-                // notify event
-                OnPropertyChanged(nameof(Locale));
-            }
-        }
-        /// <summary>
-        /// Division info used for the client connection
-        /// </summary>
-        public string DivisionInfo
-        {
-            get { return m_DivisionInfo; }
-            set
-            {
-                // set new value
-                m_DivisionInfo = value;
-                // notify event
-                OnPropertyChanged(nameof(DivisionInfo));
-            }
-        }
-        /// <summary>
-        /// Gateway port used for the client connection
-        /// </summary>
-        public ushort Gateport
-        {
-            get { return m_Gateport; }
-            set
-            {
-                // set new value
-                m_Gateport = value;
-                // notify event
-                OnPropertyChanged(nameof(Gateport));
-            }
-        }
-        #endregion
-
-        #region Public Advanced Properties
-        /// <summary>
-        /// Blowfish being logged by the application
-        /// </summary>
-        public string BlowfishKey
-        {
-            get { return m_BlowfishKey; }
-            set
-            {
-                // set new value
-                m_BlowfishKey = value;
-                // notify event
-                OnPropertyChanged(nameof(BlowfishKey));
-            }
-        }
-        /// <summary>
-        /// All possible servers files that application can support
-        /// </summary>
-        public ObservableCollection<SilkroadFilesType> SilkroadFilesTypes { get; } 
-        /// <summary>
-        /// The choosen type of server, this can change the behavior on the application
-        /// </summary>
-        public SilkroadFilesType SilkroadFilesType
-        {
-            get { return m_SilkroadFilesType; }
-            set {
-                // set new value
-                m_SilkroadFilesType = value;
-                // notify event
-                OnPropertyChanged(nameof(SilkroadFilesType));
-            }
-        }
-        
-        /// <summary>
-        /// Pk2 path to the Silkroad version file
-        /// </summary>
-        public string VersionPath
-        {
-            get { return m_VersionPath; }
-            set
-            {
-                // set new value
-                m_VersionPath = value;
-                // notify event
-                OnPropertyChanged(nameof(VersionPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the DivisionInfo file
-        /// </summary>
-        public string DivisionInfoPath
-        {
-            get { return m_DivisionInfoPath; }
-            set
-            {
-                // set new value
-                m_DivisionInfoPath = value;
-                // notify event
-                OnPropertyChanged(nameof(DivisionInfoPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the Gateport file
-        /// </summary>
-        public string GateportPath
-        {
-            get { return m_GateportPath; }
-            set
-            {
-                // set new value
-                m_GateportPath = value;
-                // notify event
-                OnPropertyChanged(nameof(GateportPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the Type file
-        /// </summary>
-        public string TypePath
-        {
-            get { return m_TypePath; }
-            set
-            {
-                // set new value
-                m_TypePath = value;
-                // notify event
-                OnPropertyChanged(nameof(TypePath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the pointer TextDataName file names
-        /// </summary>
-        public string TextDataNamePointerPath
-        {
-            get { return m_TextDataNamePointerPath; }
-            set
-            {
-                // set new value
-                m_TextDataNamePointerPath = value;
-                // notify event
-                OnPropertyChanged(nameof(TextDataNamePointerPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the TextUISystem file
-        /// </summary>
-        public string TextUISystemPath
-        {
-            get { return m_TextUISystemPath; }
-            set
-            {
-                // set new value
-                m_TextUISystemPath = value;
-                // notify event
-                OnPropertyChanged(nameof(TextUISystemPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the TextZoneName file
-        /// </summary>
-        public string TextZoneNamePath
-        {
-            get { return m_TextZoneNamePath; }
-            set
-            {
-                // set new value
-                m_TextZoneNamePath = value;
-                // notify event
-                OnPropertyChanged(nameof(TextZoneNamePath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the pointer ItemData file names
-        /// </summary>
-        public string ItemDataPointerPath
-        {
-            get { return m_ItemDataPointerPath; }
-            set
-            {
-                // set new value
-                m_ItemDataPointerPath = value;
-                // notify event
-                OnPropertyChanged(nameof(ItemDataPointerPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the MagicOption file
-        /// </summary>
-        public string MagicOptionPath
-        {
-            get { return m_MagicOptionPath; }
-            set
-            {
-                // set new value
-                m_MagicOptionPath = value;
-                // notify event
-                OnPropertyChanged(nameof(MagicOptionPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the pointer CharacterData file names
-        /// </summary>
-        public string CharacterDataPointerPath
-        {
-            get { return m_CharacterDataPointerPath; }
-            set
-            {
-                // set new value
-                m_CharacterDataPointerPath = value;
-                // notify event
-                OnPropertyChanged(nameof(CharacterDataPointerPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the LevelData file
-        /// </summary>
-        public string LevelDataPath
-        {
-            get { return m_LevelDataPath; }
-            set
-            {
-                // set new value
-                m_LevelDataPath = value;
-                // notify event
-                OnPropertyChanged(nameof(LevelDataPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the SkillMasteryData file
-        /// </summary>
-        public string SkillMasteryDataPath
-        {
-            get { return m_SkillMasteryDataPath; }
-            set
-            {
-                // set new value
-                m_SkillMasteryDataPath = value;
-                // notify event
-                OnPropertyChanged(nameof(SkillMasteryDataPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the pointer SkillDataEnc file names
-        /// </summary>
-        public string SkillDataPointerPath
-        {
-            get { return m_SkillDataPointerPath; }
-            set
-            {
-                // set new value
-                m_SkillDataPointerPath = value;
-                // notify event
-                OnPropertyChanged(nameof(SkillDataPointerPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refShopGroup file
-        /// </summary>
-        public string refShopGroupPath
-        {
-            get { return m_refShopGroupPath; }
-            set
-            {
-                // set new value
-                m_refShopGroupPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refShopGroupPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refMappingShopGroup file
-        /// </summary>
-        public string refMappingShopGroupPath
-        {
-            get { return m_refMappingShopGroupPath; }
-            set
-            {
-                // set new value
-                m_refMappingShopGroupPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refMappingShopGroupPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refMappingShopWithTab file
-        /// </summary>
-        public string refMappingShopWithTabPath
-        {
-            get { return m_refMappingShopWithTabPath; }
-            set
-            {
-                // set new value
-                m_refMappingShopWithTabPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refMappingShopWithTabPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refShopTab file
-        /// </summary>
-        public string refShopTabPath
-        {
-            get { return m_refShopTabPath; }
-            set
-            {
-                // set new value
-                m_refShopTabPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refShopTabPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refScrapOfPackageItem file
-        /// </summary>
-        public string refScrapOfPackageItemPath
-        {
-            get { return m_refScrapOfPackageItemPath; }
-            set
-            {
-                // set new value
-                m_refScrapOfPackageItemPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refScrapOfPackageItemPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the refShopGoods file
-        /// </summary>
-        public string refShopGoodsPath
-        {
-            get { return m_refShopGoodsPath; }
-            set
-            {
-                // set new value
-                m_refShopGoodsPath = value;
-                // notify event
-                OnPropertyChanged(nameof(refShopGoodsPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the TeleportData file
-        /// </summary>
-        public string TeleportDataPath
-        {
-            get { return m_TeleportDataPath; }
-            set
-            {
-                // set new value
-                m_TeleportDataPath = value;
-                // notify event
-                OnPropertyChanged(nameof(TeleportDataPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the TeleportBuilding file
-        /// </summary>
-        public string TeleportBuildingPath
-        {
-            get { return m_TeleportBuildingPath; }
-            set
-            {
-                // set new value
-                m_TeleportBuildingPath = value;
-                // notify event
-                OnPropertyChanged(nameof(TeleportBuildingPath));
-            }
-        }
-        /// <summary>
-        /// Pk2 path to the TeleportLink file
-        /// </summary>
-        public string TeleportLinkPath
-        {
-            get { return m_TeleportLinkPath; }
-            set
-            {
-                // set new value
-                m_TeleportLinkPath = value;
-                // notify event
-                OnPropertyChanged(nameof(TeleportLinkPath));
+                OnPropertyChanged(nameof(Silkroad));
             }
         }
         /// <summary>
@@ -653,26 +200,34 @@ namespace xBot
 
         #region Constructor
         /// <summary>
-        /// Default constructor
+        /// Creates an database extractor using the client files
         /// </summary>
-        public Pk2ExtractorViewModel(Window Window,string FullPath)
+        /// <param name="Window">Window this view controls</param>
+        /// <param name="FolderPath">Path to the Silkroad folder</param>
+        /// <param name="Silkroad">Silkroad info to be edited/override</param>
+        public Pk2ExtractorViewModel(Window Window,string FolderPath, SilkroadSetupViewModel Silkroad = null)
         {
             // Save references
             m_Window = Window;
             // Async cancel (safe abort)
             m_ExtractionCancelToken = new CancellationTokenSource();
 
-            // Set path to work
-            m_FullPath = FullPath;
-            // Silkroad identification
-            SilkroadID = GetHashMD5(FullPath);
-            m_SilkroadName = Directory.GetParent(FullPath).Name;
+            // Set all file types supported
+            SilkroadFilesTypes = new SilkroadFilesType[] { SilkroadFilesType.vSRO_1188 };
 
-            // Set files by default
-            SilkroadFilesTypes = new ObservableCollection<SilkroadFilesType>() {
-                SilkroadFilesType.vSRO_1188
-            };
-            m_SilkroadFilesType = SilkroadFilesTypes[0];
+            // Load or craete the Silkroad info
+            if (Silkroad == null)
+            {
+                DirectoryInfo folder = new DirectoryInfo(FolderPath);
+                this.Silkroad = new SilkroadSetupViewModel(folder.FullName, folder.FullName.ToMD5Hash())
+                {
+                    SilkroadFilesType = SilkroadFilesType.vSRO_1188 // vSRO as default
+                };
+            }
+            else
+            {
+                this.Silkroad = Silkroad;
+            }
 
             // Add the first line in the logger
             m_TextLogged = DateTime.Now.ToShortFormat() + " Pk2 Extractor | Created by Engels \"JellyBitz\" Quintero";
@@ -749,12 +304,9 @@ namespace xBot
             #region Loading Pk2
             WriteLine("Loading the Pk2 file...");
             WriteProcess("Opening Pk2 file...");
-            // Just make sure the Blowfish key is set correctly
-            if (string.IsNullOrEmpty(BlowfishKey))
-                BlowfishKey = "169841";
 
             // Try to open the Pk2 file
-            if (!await Task.Run(() => TryLoadPk2(BlowfishKey)).WaitAsync(token))
+            if (!await Task.Run(() => TryLoadPk2()).WaitAsync(token))
             {
                 // Show failure error
                 WriteLine("Error opening the Pk2 file. Wrong blowfish key");
@@ -768,7 +320,7 @@ namespace xBot
 
             #region Database connection
             // Try to create, and connect to the database
-            string dbPath = FileManager.GetDatabaseFile(SilkroadID);
+            string dbPath = FileManager.GetDatabaseFile(Silkroad.ID);
 
             this.m_Database = new SQLDatabase();
             WriteProcess("Creating database...");
@@ -801,7 +353,7 @@ namespace xBot
             await m_Database.ExecuteQuickQueryAsync("CREATE TABLE serverinfo (type VARCHAR(20),data VARCHAR(256))");
 
             // Add Silkroad files type
-            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + SilkroadFilesType + "')");
+            await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('type','" + Silkroad.SilkroadFilesType + "')");
 
             // Add Locale
             WriteProcess("Extracting locale...");
@@ -814,7 +366,7 @@ namespace xBot
                 return;
             }
             await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('locale','" + locale + "')");
-            Locale = locale;
+            Silkroad.Locale = locale;
 
             // Add Version
             WriteProcess("Extracting version...");
@@ -827,7 +379,7 @@ namespace xBot
                 return;
             }
             await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('version','" + version + "')");
-            Version = version;
+            Silkroad.Version = version;
 
             // Add Division Info
             WriteProcess("Extracting division info...");
@@ -848,7 +400,7 @@ namespace xBot
                 divisionInfoText = string.Join("|", divs);
             }
             await m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('divisions','" + divisionInfoText + "')");
-            DivisionInfo = divisionInfoText;
+            Silkroad.DivisionInfo = divisionInfoText;
 
             // Add Gateway port
             WriteProcess("Extracting port...");
@@ -861,7 +413,7 @@ namespace xBot
                 return;
             }
             await this.m_Database.ExecuteQuickQueryAsync("INSERT INTO serverinfo (type,data) VALUES ('port','" + gateport + "')");
-            Gateport = gateport;
+            Silkroad.Gateport = gateport;
             #endregion
 
             #region Extraction: Client data
@@ -1053,34 +605,20 @@ namespace xBot
             m_Window.DialogResult = true;
         }
         /// <summary>
-        /// Creates a hash based on a MD5 algorithm.
-        /// </summary>
-        /// <param name="value">The value to be converted</param>
-        private string GetHashMD5(string value)
-        {
-            // Convert the input string to a byte array and compute the hash.
-            byte[] data = System.Security.Cryptography.MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(value));
-
-            // Create a new Stringbuilder to collect the bytes and create a string
-            StringBuilder sBuilder = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
-                sBuilder.Append(data[i].ToString("x2"));
-
-            // Return the hexadecimal string.
-            return sBuilder.ToString();
-        }
-        /// <summary>
         /// Try to open and load the Pk2 file (this task can take a noticeable time)
         /// </summary>
-        /// <param name="BlowfishKey">Blowfish key to open the Pk2 file</param>
         /// <returns>Return success</returns>
-        private bool TryLoadPk2(string BlowfishKey)
+        private bool TryLoadPk2()
         {
+            // Just make sure the Blowfish key is set correctly
+            if (string.IsNullOrEmpty(Silkroad.BlowfishKey))
+                Silkroad.BlowfishKey = "169841";
+
             // Try to read the Pk2 file
             try
             {
                 // Warning, this process can take a noticeable time
-                m_Pk2 = new Pk2Reader(m_FullPath, BlowfishKey);
+                m_Pk2 = new Pk2Reader(Silkroad.Path+"\\"+Silkroad.MediaPk2FileName, Silkroad.BlowfishKey);
                 return true;
             }
             catch {
@@ -1097,7 +635,7 @@ namespace xBot
             try
             {
                 // Localize the file and prepare to read it 
-                Stream data = m_Pk2.GetFileStream(VersionPath);
+                Stream data = m_Pk2.GetFileStream(Silkroad.VersionPath);
                 BinaryReader buffer = new BinaryReader(data, Encoding.ASCII);
 
                 // Reading the encrypted file
@@ -1131,7 +669,7 @@ namespace xBot
             try
             {
                 // Localize the file and prepare to read it 
-                Stream data = m_Pk2.GetFileStream(DivisionInfoPath);
+                Stream data = m_Pk2.GetFileStream(Silkroad.DivisionInfoPath);
                 BinaryReader buffer = new BinaryReader(data, Encoding.ASCII);
 
                 // Read first byte only
@@ -1155,7 +693,7 @@ namespace xBot
             try
             {
                 // Localize the file and prepare to read it 
-                Stream data = m_Pk2.GetFileStream(DivisionInfoPath);
+                Stream data = m_Pk2.GetFileStream(Silkroad.DivisionInfoPath);
                 BinaryReader buffer = new BinaryReader(data, Encoding.ASCII);
 
                 // initialize
@@ -1210,7 +748,7 @@ namespace xBot
             try
             {
                 // Localize the file and prepare to read it 
-                string data = m_Pk2.GetFileText(GateportPath);
+                string data = m_Pk2.GetFileText(Silkroad.GateportPath);
 
                 // The file contains the port only
                 Gateport = ushort.Parse(data.Trim());
@@ -1235,7 +773,7 @@ namespace xBot
         {
             try
             {
-                string[] lines = m_Pk2.GetFileText(TypePath).Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] lines = m_Pk2.GetFileText(Silkroad.TypePath).Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 // Go through every .ini line
                 for (int i = 0; i < lines.Length; i++)
                 {
@@ -1305,7 +843,7 @@ namespace xBot
                 string line;
                 string[] data;
                 // Go through evry file
-                ForEachDataFile(TextDataNamePointerPath, true, (FilePath,FileName) =>
+                ForEachDataFile(Silkroad.TextDataNamePointerPath, true, (FilePath,FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1360,7 +898,7 @@ namespace xBot
                 string line;
                 string[] data;
                 // Go through evry file
-                ForEachDataFile(TextUISystemPath, false, (FilePath,FileName) =>
+                ForEachDataFile(Silkroad.TextUISystemPath, false, (FilePath,FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1463,7 +1001,7 @@ namespace xBot
                 int i = 0;
 
                 // Go through evry file
-                ForEachDataFile(TextZoneNamePath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.TextZoneNamePath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1548,7 +1086,7 @@ namespace xBot
                 string[] data;
 
                 // Go through evry file
-                ForEachDataFile(ItemDataPointerPath, true, (FilePath, FileName) => {
+                ForEachDataFile(Silkroad.ItemDataPointerPath, true, (FilePath, FileName) => {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
                     {
@@ -1639,7 +1177,7 @@ namespace xBot
                 List<string> itemTypes = new List<string>();
 
                 // Go through evry file
-                ForEachDataFile(MagicOptionPath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.MagicOptionPath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1795,7 +1333,7 @@ namespace xBot
                 string[] data;
 
                 // Go through evry file
-                ForEachDataFile(CharacterDataPointerPath, true, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.CharacterDataPointerPath, true, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1878,7 +1416,7 @@ namespace xBot
                 string[] data;
 
                 // Go through evry file
-                ForEachDataFile(LevelDataPath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.LevelDataPath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -1944,7 +1482,7 @@ namespace xBot
                 string[] data;
 
                 // Go through evry file
-                ForEachDataFile(SkillMasteryDataPath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.SkillMasteryDataPath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -2050,7 +1588,7 @@ namespace xBot
                 byte parameters_MAX = 30;
 
                 // Go through evry file
-                ForEachDataFile(SkillDataPointerPath, true, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.SkillDataPointerPath, true, (FilePath, FileName) =>
                 {
                     // Display progress
                     WriteProcess("Processing " + FileName + "...");
@@ -2162,7 +1700,7 @@ namespace xBot
                 
                 WriteProcess("Loading refShopGroup.txt");
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopGroupPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refShopGroupPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2187,7 +1725,7 @@ namespace xBot
 
                 WriteProcess("Loading refMappingShopGroup.txt");
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refMappingShopGroupPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refMappingShopGroupPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2220,7 +1758,7 @@ namespace xBot
 
                 WriteProcess("Loading refMappingShopWithTab.txt");
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refMappingShopWithTabPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refMappingShopWithTabPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2248,7 +1786,7 @@ namespace xBot
 
                 WriteProcess("Loading refShopTab.txt");
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopTabPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refShopTabPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2282,7 +1820,7 @@ namespace xBot
                 // Load references to all possibles items package
                 Dictionary<string, string[]> refScrapOfPackageItem = new Dictionary<string, string[]>();
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refScrapOfPackageItemPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refScrapOfPackageItemPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2308,7 +1846,7 @@ namespace xBot
 
                 WriteProcess("Loading refShopGoods.txt");
                 // Keep memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(refShopGoodsPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.refShopGoodsPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2441,7 +1979,7 @@ namespace xBot
                 string[] data;
 
                 // Go through evry file
-                ForEachDataFile(TeleportBuildingPath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.TeleportBuildingPath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -2510,7 +2048,7 @@ namespace xBot
                 #region Loading Teleport Data
                 WriteProcess("Loading TeleportData.txt");
                 // Keep Memory safe
-                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(TeleportDataPath)))
+                using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(Silkroad.TeleportDataPath)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -2556,7 +2094,7 @@ namespace xBot
                 string sourceName, destinationName, tid1, tid2, tid3, tid4;
 
                 // Go through evry file
-                ForEachDataFile(TeleportLinkPath, false, (FilePath, FileName) =>
+                ForEachDataFile(Silkroad.TeleportLinkPath, false, (FilePath, FileName) =>
                 {
                     // Keep memory safe
                     using (StreamReader reader = new StreamReader(m_Pk2.GetFileStream(FilePath)))
@@ -2666,7 +2204,7 @@ namespace xBot
             try
             {
                 // The folder path to allocate all icons
-                string folderPath = FileManager.GetSilkroadFolder(SilkroadID);
+                string folderPath = FileManager.GetSilkroadFolder(Silkroad.ID);
 
                 // Check tables with icons
                 string[] tables = new string[] {

@@ -30,7 +30,7 @@
         /// <summary>
         /// Silkroad files that almost all privates servers use because the support on internet
         /// </summary>
-        public static SilkroadFilesType vSRO_1188 { get; } = new SilkroadFilesType("vSRO 1.188");
+        public static SilkroadFilesType vSRO_1188 { get; } = new SilkroadFilesType("vSRO 1.188");       
         #endregion
     }
 

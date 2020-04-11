@@ -5,7 +5,7 @@
 > 
 > *In fact, the code can result a bit messy and extensive, but please consider this is my WPF-learning project.*
 > 
-> *I'm not entirelly sure if the source release will be a good choice since always will exists people looking for taking abusive advantajes over others which is not my intention, mine is simple; making a modern bot that will be better than sBot and/or mBot and will be available for free obviously.* 
+> *I'm not entirelly sure if the source release will be a good choice since always will exists people looking for taking abusive advantages over others which is not my intention, mine is simple; making a modern bot that will be better than sBot and/or mBot and will be available for free obviously.* 
 
 ---
 > ### Do you like this project ? 
@@ -23,3 +23,4 @@
 > - Newtonsoft JSON
 > - SQLite3
 > - DevIL
+> - Ooki

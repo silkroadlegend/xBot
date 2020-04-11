@@ -11,7 +11,7 @@
         Title="{Binding Title}" 
         Height="300" Width="400"
         Foreground="{StaticResource ForegroundMainBrush}"
-        Closing="AppExtractor_Closing">
+        Closing="Window_Closing">
 
     <Border BorderThickness="1" BorderBrush="{StaticResource HighlightMainBrush}">
         <!-- Main layout-->
@@ -95,7 +95,7 @@
                                          VerticalScrollBarVisibility="Auto"
                                          IsReadOnly="True"
                                          TextChanged="TextBox_TextChanged_AutoScroll"
-                                         ScrollViewer.ScrollChanged="TextBox_Scroll_AutoScroll">
+                                         ScrollViewer.ScrollChanged="ScrollViewer_ScrollChanged_AutoScroll">
                                 </TextBox>
                             </Grid>
                         </Border>
@@ -119,7 +119,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Silkroad Name : "/>
-                                    <TextBox Text="{Binding SilkroadName}"
+                                    <TextBox Text="{Binding Silkroad.Name}"
                                              Margin="0,1" Grid.Column="1"/>
                                 </Grid>
                                 <!-- Info -->
@@ -139,17 +139,17 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="Locale : "/>
-                                    <TextBox Text="{Binding Locale}"
+                                    <TextBox Text="{Binding Silkroad.Locale}"
                                              Grid.Column="1"
                                              IsReadOnly="True"/>
                                     <TextBlock Text="Version : "
                                                Grid.Column="2" Margin="3,0,0,0"/>
-                                    <TextBox Text="{Binding Version}"
+                                    <TextBox Text="{Binding Silkroad.Version}"
                                              Grid.Column="3"
                                              IsReadOnly="True"/>
                                     <TextBlock Text="Gateway Port : "
                                                Grid.Column="4" Margin="3,0,0,0"/>
-                                    <TextBox Text="{Binding Gateport}"
+                                    <TextBox Text="{Binding Silkroad.Gateport}"
                                              Grid.Column="5"
                                              IsReadOnly="True"/>
                                     <StackPanel Grid.Row="1" Grid.ColumnSpan="10">
@@ -160,7 +160,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Division Info : "/>
                                             <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding DivisionInfo}"
+                                                 Text="{Binding Silkroad.DivisionInfo}"
                                                  IsReadOnly="True"/>
                                         </Grid>
                                     </StackPanel>
@@ -181,17 +181,7 @@
                         <Border Style="{StaticResource TabItemContentSecondBorder}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Margin="6">
-                                    <!-- Key -->
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Blowfish Pk2 Key : "/>
-                                        <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding BlowfishKey}"
-                                                 IsReadOnly="{Binding IsExtracting}"/>
-                                    </Grid>
+                                    <!-- Basic -->
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -200,19 +190,71 @@
                                         <TextBlock Text="Silkroad files : "/>
                                         <ComboBox Margin="0,1" Grid.Column="1"
                                                   ItemsSource="{Binding SilkroadFilesTypes}"
-                                                  SelectedItem="{Binding SilkroadFilesType}">
+                                                  SelectedItem="{Binding Silkroad.SilkroadFilesType}">
                                         </ComboBox>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Launcher Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding Silkroad.LauncherPath}"
+                                                 IsReadOnly="True"/>
+                                        <Button Name="btnLauncher" Margin="6,3,0,3" Grid.Column="2"
+                                                Click="Button_Click">
+                                            <TextBlock Text="..." Margin="6,0"/>
+                                        </Button>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Client Path : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding Silkroad.ClientPath}"
+                                                 IsReadOnly="True"/>
+                                        <Button Name="btnClient" Margin="6,3,0,3" Grid.Column="2"
+                                                Click="Button_Click">
+                                            <TextBlock Text="..." Margin="6,0"/>
+                                        </Button>
                                     </Grid>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <CheckBox Content="Icons "
+                                        <CheckBox Content="Extract Icons "
                                                   IsChecked="{Binding ExtractIcons}"/>
-                                        <CheckBox Content="Minimap "
+                                        <CheckBox Content="Extract Minimap "
                                                   Grid.Column="1" Margin="3,0,0,0"
                                                   IsChecked="{Binding ExtractMinimap}"/>
+                                    </Grid>
+                                    <!-- Key -->
+                                    <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Blowfish Pk2 Key : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding Silkroad.BlowfishKey}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Media Pk2 Filename : "/>
+                                        <TextBox Margin="0,1" Grid.Column="1"
+                                                 Text="{Binding Silkroad.MediaPk2FileName}"
+                                                 IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <!-- Connection -->
                                     <Border Margin="0,6" Height="1" Style="{StaticResource BaseBorderStyle}"/>
@@ -223,7 +265,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Version Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding VersionPath}"
+                                                 Text="{Binding Silkroad.VersionPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -233,7 +275,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="DivisionInfo Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1" 
-                                                 Text="{Binding DivisionInfoPath}"
+                                                 Text="{Binding Silkroad.DivisionInfoPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -243,7 +285,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Gateport Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1" 
-                                                 Text="{Binding GateportPath}"
+                                                 Text="{Binding Silkroad.GateportPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -253,7 +295,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Type Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1" 
-                                                 Text="{Binding TypePath}"
+                                                 Text="{Binding Silkroad.TypePath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <!-- Data -->
@@ -265,7 +307,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TextDataName *Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding TextDataNamePointerPath}"
+                                                 Text="{Binding Silkroad.TextDataNamePointerPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -275,7 +317,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TextUISystem Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1" 
-                                                 Text="{Binding TextUISystemPath}"
+                                                 Text="{Binding Silkroad.TextUISystemPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -285,7 +327,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TextZoneName Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding TextZoneNamePath}"
+                                                 Text="{Binding Silkroad.TextZoneNamePath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -295,7 +337,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="ItemData *Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding ItemDataPointerPath}"
+                                                 Text="{Binding Silkroad.ItemDataPointerPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -305,7 +347,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="MagicOption Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding MagicOptionPath}"
+                                                 Text="{Binding Silkroad.MagicOptionPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -315,7 +357,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="CharacterData *Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding CharacterDataPointerPath}"
+                                                 Text="{Binding Silkroad.CharacterDataPointerPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -325,7 +367,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="LevelData Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding LevelDataPath}"
+                                                 Text="{Binding Silkroad.LevelDataPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -335,7 +377,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="SkillMasteryData Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding SkillMasteryDataPath}"
+                                                 Text="{Binding Silkroad.SkillMasteryDataPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -345,7 +387,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="SkillData *Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding SkillDataPointerPath}"
+                                                 Text="{Binding Silkroad.SkillDataPointerPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -355,7 +397,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refShopGroup Path : "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refShopGroupPath}"
+                                                 Text="{Binding Silkroad.refShopGroupPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -365,7 +407,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refMappingShopGroup Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refMappingShopGroupPath}"
+                                                 Text="{Binding Silkroad.refMappingShopGroupPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -375,7 +417,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refMappingShopWithTab Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refMappingShopWithTabPath}"
+                                                 Text="{Binding Silkroad.refMappingShopWithTabPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -385,7 +427,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refShopTab Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refShopTabPath}"
+                                                 Text="{Binding Silkroad.refShopTabPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -395,7 +437,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refScrapOfPackageItem Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refScrapOfPackageItemPath}"
+                                                 Text="{Binding Silkroad.refScrapOfPackageItemPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -405,7 +447,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="refShopGoods Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding refShopGoodsPath}"
+                                                 Text="{Binding Silkroad.refShopGoodsPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -415,7 +457,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TeleportData Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding TeleportDataPath}"
+                                                 Text="{Binding Silkroad.TeleportDataPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -425,7 +467,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TeleportBuilding Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding TeleportBuildingPath}"
+                                                 Text="{Binding Silkroad.TeleportBuildingPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                     <Grid>
@@ -435,7 +477,7 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="TeleportLink Path: "/>
                                         <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text="{Binding TeleportLinkPath}"
+                                                 Text="{Binding Silkroad.TeleportLinkPath}"
                                                  IsReadOnly="{Binding IsExtracting}"/>
                                     </Grid>
                                 </StackPanel>
