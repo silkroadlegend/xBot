@@ -1,0 +1,37 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:local="clr-namespace:xBot"
+                    mc:Ignorable="d">
+    <!-- Radio button for base application  -->
+    <Style TargetType="{x:Type RadioButton}" BasedOn="{StaticResource BaseFontStyle}">
+        <Setter Property="Foreground" Value="{StaticResource ForegroundMainBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <BulletDecorator Background="Transparent">
+                        <BulletDecorator.Bullet>
+                            <Grid Height="15" Width="15">
+                                <!--Define size of the Bullet-->
+                                <Border Name="RadioOuter" Background="{StaticResource BackgroundLighterBrush}" BorderBrush="{StaticResource BorderMainBrush}" BorderThickness="1" CornerRadius="6" />
+                                <Border CornerRadius="6" Margin="3" Name="RadioMark" Background="{StaticResource ForegroundMainBrush}" Visibility="Hidden" />
+                            </Grid>
+                        </BulletDecorator.Bullet>
+                        <TextBlock Margin="3,1,0,0" Foreground="{TemplateBinding Foreground}">
+                            <ContentPresenter />
+                        </TextBlock>
+                    </BulletDecorator>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="true">
+                            <Setter TargetName="RadioMark" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="RadioOuter" Property="Background" Value="{StaticResource HighlightMainBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

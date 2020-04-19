@@ -299,7 +299,7 @@ namespace xBot
                 // Fix duplicated names, just in case!
                 for (int i = 0; i < Settings.Silkroads.Count; i++)
                 {
-                    if (Settings.Silkroads[i].Name == setup.Name)
+                    if (Settings.Silkroads[i] != setup && Settings.Silkroads[i].Name == setup.Name )
                     {
                         setup.Name += "*";
                         i = 0;

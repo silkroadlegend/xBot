@@ -190,7 +190,7 @@
                                         <TextBlock Text="Silkroad files : "/>
                                         <ComboBox Margin="0,1" Grid.Column="1"
                                                   ItemsSource="{Binding SilkroadFilesTypes}"
-                                                  SelectedItem="{Binding Silkroad.SilkroadFilesType}">
+                                                  SelectedItem="{Binding Silkroad.FilesType}">
                                         </ComboBox>
                                     </Grid>
                                     <Grid>
