@@ -72,4 +72,34 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="CheckBoxPasswordVisibility" TargetType="{x:Type CheckBox}" BasedOn="{StaticResource BaseFontStyle}">
+        <Setter Property="SnapsToDevicePixels" Value="true"/>
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource CheckBoxFocusVisual}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <TextBlock x:Name="IconMark"
+                               Foreground="{StaticResource BorderMainBrush}" 
+                               FontFamily="{StaticResource FontAwesomeRegular}" 
+                               VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                               Padding="{TemplateBinding Padding}"
+                               Text="{StaticResource FAwesomePasswordHidden}"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="IconMark" Property="Text" Value="{StaticResource FAwesomePasswordVisible}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="IconMark" Property="Foreground" Value="{StaticResource ForegroundMainBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Foreground" Value="{StaticResource ForegroundMainDisabledBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

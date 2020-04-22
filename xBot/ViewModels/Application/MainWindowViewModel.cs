@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Security;
 using System.Windows;
 using System.Windows.Input;
 using xBot.Utility;
@@ -120,6 +121,14 @@ namespace xBot
         /// Application general settings
         /// </summary>
         public ApplicationSettingsViewModel Settings { get; private set; }
+        /// <summary>
+        /// Character settings
+        /// </summary>
+        public CharSettingsViewModel CharSettings { get; } = new CharSettingsViewModel("");
+        /// <summary>
+        /// Login process controller
+        /// </summary>
+        public LoginViewModel Login { get; private set; }
         #endregion
 
         #region Commands
@@ -166,10 +175,8 @@ namespace xBot
                 Environment.NewLine + "{0} Discord : JellyBitz#7643 | FaceBook : @ImJellyBitz",
                DateTime.Now.ToShortFormat(), AppName, Version);
 
-            // Load settings file
-            InitializeSettings("xBot.Settings.json");
-
-            // Commands setup
+            #region Commands Setup
+            // Windows commands
             CommandMinimize = new RelayCommand(() => m_Window.WindowState = WindowState.Minimized);
             CommandRestore = new RelayCommand(() =>
             {
@@ -177,10 +184,15 @@ namespace xBot
                 m_Window.WindowState = m_Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
             });
             CommandClose = new RelayCommand(m_Window.Close);
-
+            // App commands
             CommandAddSilkroad = new RelayCommand(AddSilkroad);
             CommandRemoveSilkroad = new RelayParameterizedCommand(RemoveSilkroad);
             CommandUpdateSilkroad = new RelayParameterizedCommand(UpdateSilkroad);
+            #endregion
+
+            // On Load stuffs
+            InitializeSettings("xBot.Settings.json");
+            InitializeLogin(Environment.GetCommandLineArgs());
         }
         #endregion
 
@@ -339,6 +351,20 @@ namespace xBot
 
             // Set app settings
             Settings = settings;
+        }
+        /// <summary>
+        /// Initialize the login by using command line or default
+        /// </summary>
+        private void InitializeLogin(string[] args)
+        {
+            Login = new LoginViewModel();
+
+            // TO DO:
+            // Load command line
+
+            // Set default selection for quick login (UX stuff)
+            if (Login.SilkroadSelected == null && Settings.Silkroads.Count > 0)
+                Login.SilkroadSelected = Settings.Silkroads[0];
         }
         #endregion
     }

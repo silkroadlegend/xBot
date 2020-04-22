@@ -14,6 +14,13 @@
         <Setter Property="BorderBrush" Value="{StaticResource BorderMainBrush}"/>
     </Style>
 
+    <!-- PasswordBox for base application -->
+    <Style TargetType="{x:Type PasswordBox}" BasedOn="{StaticResource BaseFontStyle}">
+        <Setter Property="Background" Value="{StaticResource BackgroundDarkerBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource ForegroundMainBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderMainBrush}"/>
+    </Style>
+
     <!-- RichTextBox for base application -->
     <Style TargetType="{x:Type RichTextBox}" BasedOn="{StaticResource BaseFontStyle}">
         <Setter Property="Foreground" Value="{StaticResource ForegroundMainBrush}"/>

@@ -101,8 +101,9 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Silkroad : "/>
                                             <ComboBox Grid.Column="1"
-                                                  ItemsSource="{Binding Settings.Silkroads}"
-                                                  DisplayMemberPath="Name">
+                                                      ItemsSource="{Binding Settings.Silkroads}"
+                                                      SelectedItem="{Binding Login.SilkroadSelected}"
+                                                      DisplayMemberPath="Name">
                                             </ComboBox>
                                         </Grid>
                                         <Grid>
@@ -112,7 +113,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Username : "/>
                                             <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text=""/>
+                                                 Text="{Binding Login.Username}"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -120,8 +121,21 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Password : "/>
+                                            <PasswordBox Margin="0,1" Grid.Column="1"
+                                                         x:Name="Login_pwbPassword"
+                                                         PasswordChar="•"
+                                                         Padding="0,0,28,0"
+                                                         PasswordChanged="Login_PasswordChanged"/>
                                             <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text=""/>
+                                                     x:Name="Login_tbxPassword"
+                                                     Padding="0,0,28,0"
+                                                     Visibility="Hidden"
+                                                     TextChanged="Login_PasswordChanged"/>
+                                            <CheckBox Grid.Column="1" Style="{StaticResource CheckBoxPasswordVisibility}"
+                                                      Padding="6,0"
+                                                      Checked="Login_PasswordVisibility_Checked"
+                                                      Unchecked="Login_PasswordVisibility_Checked"
+                                                      HorizontalAlignment="Right"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -130,7 +144,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Captcha : "/>
                                             <TextBox Margin="0,1" Grid.Column="1"
-                                                 Text=""/>
+                                                 Text="{Binding Login.Captcha}"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -138,7 +152,8 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Server : "/>
-                                            <ComboBox Grid.Column="1"/>
+                                            <ComboBox Grid.Column="1"
+                                                      SelectedItem="{Binding Login.Server}"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -146,7 +161,8 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Character : "/>
-                                            <ComboBox Grid.Column="1"/>
+                                            <ComboBox Grid.Column="1"
+                                                      SelectedItem="{Binding Login.Character}"/>
                                         </Grid>
                                     </StackPanel>
                                 </GroupBox>
@@ -162,7 +178,7 @@
                                                 <ColumnDefinition Width="50*"/>
                                             </Grid.ColumnDefinitions>
                                             <RadioButton Content="Client Mode" IsChecked="True"/>
-                                            <RadioButton Content="Clientless Mode" 
+                                            <RadioButton Content="Clientless Mode" x:Name="Login_cbxClientlessMode" 
                                                          Grid.Column="1"/>
                                         </Grid>
                                         <CheckBox>Relog on disconnect</CheckBox>
@@ -184,8 +200,11 @@
                                             <ColumnDefinition Width="1*"/>
                                             <ColumnDefinition Width="1*"/>
                                         </Grid.ColumnDefinitions>
-                                        <Button Content="Start Launcher" Margin="3,0"/>
-                                        <Button Content="Start Game" Grid.Column="1" Margin="3,0"/>
+                                        <Button Content="Start Launcher" Margin="3,0"
+                                                Command="{Binding Login.CommandStartLauncher}"/>
+                                        <Button Content="Start Game" Grid.Column="1" Margin="3,0"
+                                                Command="{Binding Login.CommandStartGame}"
+                                                CommandParameter="{Binding ElementName=Login_cbxClientlessMode, Path=IsChecked}"/>
                                     </Grid>
                                 </GroupBox>
                                 <!-- Server/Character List -->

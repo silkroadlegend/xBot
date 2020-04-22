@@ -17,6 +17,8 @@
     <system:String x:Key="FAwesomeClose">&#xF00D;</system:String>
 
     <system:String x:Key="FAwesomeLogin">&#xF2BB;</system:String>
+    <system:String x:Key="FAwesomePasswordHidden">&#xF070;</system:String>
+    <system:String x:Key="FAwesomePasswordVisible">&#xF06E;</system:String>
     <system:String x:Key="FAwesomeCharacter">&#xF2BD;</system:String>
     <system:String x:Key="FAwesomeSettings">&#xF085;</system:String>
 

@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using xBot.Utility;
 
 namespace xBot
 {
@@ -84,6 +85,48 @@ namespace xBot
                 t.ScrollToEnd();
             else
                 t.ScrollToVerticalOffset(AppScrollVerticalOffset);
+        }
+        /// <summary>
+        /// Set the viewmodel password periodically
+        /// </summary>
+        private void Login_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is PasswordBox p)
+            {
+                ((MainWindowViewModel)DataContext).Login.Password = p.SecurePassword;
+            }
+            else if (sender is TextBox t)
+            {
+                ((MainWindowViewModel)DataContext).Login.Password = t.Text.ToSecureString();
+            }
+
+            // Route handled
+            e.Handled = true;
+        }
+        /// <summary>
+        /// Set the password visibility from UI
+        /// </summary>
+        private void Login_PasswordVisibility_Checked(object sender, RoutedEventArgs e)
+        {
+            CheckBox c = (CheckBox)sender;
+            // Switch visibility
+            Login_pwbPassword.Visibility = c.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+            Login_tbxPassword.Visibility = c.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            // Switch values
+            if (c.IsChecked == true)
+            {
+                Login_tbxPassword.Text = Login_pwbPassword.Password;
+                Login_tbxPassword.Focus();
+            }
+            else
+            {
+                Login_pwbPassword.Password = Login_tbxPassword.Text;
+                Login_tbxPassword.Clear();
+                Login_pwbPassword.Focus();
+            }
+
+            // Route handled
+            e.Handled = true;
         }
         #endregion
     }

@@ -110,6 +110,7 @@
     <Compile Include="ViewModels\Base\BaseViewModel.cs" />
     <Compile Include="ViewModels\Base\RelayCommand.cs" />
     <Compile Include="ViewModels\Base\RelayParameterizedCommand.cs" />
+    <Compile Include="ViewModels\Controllers\LoginViewModel.cs" />
     <Compile Include="ViewModels\Settings\ApplicationSettingsViewModel.cs" />
     <Compile Include="ViewModels\Settings\CharSettingsViewModel.cs" />
     <Compile Include="ViewModels\Silkroad\SilkroadSetupViewModel.cs" />
@@ -216,6 +217,7 @@
     <Content Include="Resources\Lib\DevIL.NET2.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Core\" />
     <Folder Include="Silkroad\Structures\Server\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

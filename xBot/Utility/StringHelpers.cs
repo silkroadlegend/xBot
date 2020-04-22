@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security;
+using System.Text;
 namespace xBot.Utility
 {
     /// <summary>
@@ -22,6 +23,20 @@ namespace xBot.Utility
 
             // Return the hexadecimal string.
             return sBuilder.ToString();
+        }
+        /// <summary>
+        /// Creates a secure string from this instance
+        /// </summary>
+        /// <param name="String">The value to be converted</param>
+        public static SecureString ToSecureString(this string String)
+        {
+            var secureString = new SecureString();
+
+            foreach (char c in String)
+                secureString.AppendChar(c);
+
+            secureString.MakeReadOnly();
+            return secureString;
         }
     }
 }
